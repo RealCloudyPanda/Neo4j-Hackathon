@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { lstatSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
+import { dirname, join, relative, sep } from "node:path";
 import { extractSnapshot } from "../extract/index.ts";
 import { computeReview } from "../review/index.ts";
 import { openStore, ROOT, type Store } from "../relate/store.ts";
@@ -76,18 +76,24 @@ export function populate(store: Store, dirs: { id: string; dir: string }[], log:
 
 /** Build the store at `target`: write a scratch file, checkpoint, then rename over the target. */
 export function buildStore(target: string, log: (s: string) => void = () => {}): void {
-  const scratch = `${target}.building.scratch.rl`;
-  if (existsSync(scratch)) rmSync(scratch, { recursive: true, force: true });
-  const store = openStore(scratch);
-  const ids = fixtureSnapshots();
-  populate(store, ids.map((id) => ({ id, dir: join(FIXTURE_DIR, id) })), log);
-  store.query("MERGE (m:Meta {key:'build'}) SET m.fingerprint = $fp, m.toolVersion = $v, m.snapshots = $s, m.builtAt = $at", {
-    fp: fingerprint(),
-    v: TOOL_VERSION,
-    s: ids,
-    at: new Date().toISOString(),
-  });
-  store.db.checkpoint();
-  if (existsSync(target)) rmSync(target, { recursive: true, force: true });
-  renameSync(scratch, target);
+  const existing = lstatSync(target, { throwIfNoEntry: false });
+  if (existing && !existing.isFile()) throw new Error(`Store target must be a regular file: ${target}`);
+
+  const dir = mkdtempSync(join(dirname(target), ".contract-drift-"));
+  const scratch = join(dir, "store.rl");
+  try {
+    const store = openStore(scratch);
+    const ids = fixtureSnapshots();
+    populate(store, ids.map((id) => ({ id, dir: join(FIXTURE_DIR, id) })), log);
+    store.query("MERGE (m:Meta {key:'build'}) SET m.fingerprint = $fp, m.toolVersion = $v, m.snapshots = $s, m.builtAt = $at", {
+      fp: fingerprint(),
+      v: TOOL_VERSION,
+      s: ids,
+      at: new Date().toISOString(),
+    });
+    store.db.checkpoint();
+    renameSync(scratch, target);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }

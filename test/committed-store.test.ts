@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,4 +37,20 @@ test("the committed Relate file opens by itself and the build skips it", (t) => 
   assert.equal(build.status, 0);
   assert.match(build.stdout, /^store up to date:/);
   assert.deepEqual(readFileSync(path), readFileSync(committed));
+});
+
+test("a forced rebuild preserves a directory passed as the file target", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "contract-drift-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const sentinel = join(dir, "notes.txt");
+  writeFileSync(sentinel, "keep");
+
+  const result = spawnSync(process.execPath, ["--import", "tsx", entry, "build", "--force", "--store", dir], {
+    encoding: "utf8",
+    timeout: 15_000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /Store target must be a regular file/);
+  assert.equal(readFileSync(sentinel, "utf8"), "keep");
 });
