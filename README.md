@@ -15,8 +15,8 @@ base and head snapshots of the monorepo into one Relate graph, finds the meaning
 and gives the reviewer a ranked **shortlist**: every usage and test the change reaches, with file:line
 evidence and the impact path, including tests the PR never touched. It stays quiet for unrelated changes.
 
-What it does not do: guess meaning (only explicit tags, see `docs/adr/0002-explicit-meaning-tags-only.md`),
-read git, call an LLM, or need any account or key.
+The analyzer uses [explicit meaning tags](docs/adr/0002-explicit-meaning-tags-only.md) and reads two
+folders. It runs locally without a model, account, or API key.
 
 ## How it uses Relate
 
@@ -26,9 +26,9 @@ read git, call an LLM, or need any account or key.
   `close()`, so the design is: `build:graph` is the only writer, it writes and exits; the CLI and the viewer
   open the file read-only. The `.rl` bytes are not deterministic between builds, so the build stores a
   content fingerprint in a `:Meta` node and skips the rebuild when nothing changed (a judge running the
-  demo leaves `git status` clean). See `docs/adr/0001-single-file-relate-store.md`.
+  demo leaves `git status` clean). See the [single-file store decision](docs/adr/0001-single-file-relate-store.md).
 - **What the graph models:** both snapshots of the same monorepo live side by side in one graph, and the
-  diff happens in the graph (`docs/adr/0003-diff-in-the-graph.md`).
+  [diff happens in the graph](docs/adr/0003-diff-in-the-graph.md).
 
 ```mermaid
 graph LR
@@ -47,7 +47,7 @@ graph LR
   D -->|FLAGS TEST| F
 ```
 
-The three queries the tool runs live in `queries/` and are loaded by the code verbatim:
+The main review queries live in [queries/](queries/) and the analyzer loads them verbatim.
 
 `queries/drift.cypher`: a meaning change is the same `Field` with a different tag in two snapshots.
 
@@ -112,8 +112,9 @@ npm run cypher -- --preset tests-not-in-diff # read-only Cypher; --list-presets 
 npm run cypher -- "MATCH (d:Drift)-[r:FLAGS]->(x) RETURN d.key, r.verdict, x.path"
 npm run viewer                               # http://localhost:4317 (stop it before rebuilding)
 npm run build:graph -- --force               # rebuild data/contract-drift.rl from the fixture
-npm test                                     # 16 tests: extraction, load, positive, negative, no-drift, fixture tsc
-npx contract-drift analyze --base ./old-checkout --head ./new-checkout   # any two folders, in-memory store
+npm test                                     # includes CLI, viewer routes, and the committed store
+npm run typecheck
+npm run analyze -- --base ./old-checkout --head ./new-checkout   # two TypeScript folders, in-memory store
 ```
 
 Real output of `npm run analyze` (copied from a run on this repo):
@@ -150,6 +151,7 @@ Reviewer shortlist                                                   in diff
                 reads the field itself
 
 Not affected: 3 other usages of 3 contract fields.   2 MISMATCH · 1 REVIEW · 4 tests
+Explore: npm run viewer   ·   Query: npm run cypher -- --preset impact-paths
 ```
 
 The unrelated PR (`--head pr-weight-kg`) flags `apps/web/src/views/shippingLabel.ts` as MISMATCH and
@@ -169,10 +171,10 @@ Hidden links, Whole head graph), results as a table or a graph.
 
 | What | Where |
 | --- | --- |
-| Relate store (single file, committed) | `data/contract-drift.rl` |
-| Queries the tool runs | `queries/drift.cypher`, `queries/impact.cypher`, `queries/tests.cypher`, `queries/tests-direct.cypher` |
-| Preset queries (CLI and viewer) | `queries/presets/*.cypher` |
-| Sample monorepo: base and two PR snapshots | `examples/shop-monorepo/snapshots/` |
+| Relate store (single file, committed) | [`data/contract-drift.rl`](data/contract-drift.rl) |
+| Queries the tool runs | [Drift](queries/drift.cypher), [impact](queries/impact.cypher), [test imports](queries/tests.cypher), [direct test reads](queries/tests-direct.cypher) |
+| Preset queries (CLI and viewer) | [`queries/presets/`](queries/presets/) |
+| Sample monorepo with base and two PR snapshots | [`examples/shop-monorepo/snapshots/`](examples/shop-monorepo/snapshots/) |
 | Hidden links (queue between services) | `examples/shop-monorepo/snapshots/*/contract-drift.links.json` |
 
 **Sample data:** everything shown comes from the fixture monorepo in `examples/shop-monorepo` (a tRPC-shaped
@@ -184,9 +186,9 @@ to run on your own code, pass two folders (`--base ./a --head ./b`).
 | Criterion | Proof |
 | --- | --- |
 | Relate & connected context | Committed `data/contract-drift.rl`; drift found by Cypher across two snapshots in one graph; impact via variable-length paths mixing code edges and hidden links; findings persisted as `FLAGS`; `queries/*.cypher`; read-only Cypher console and `npm run cypher` |
-| Functionality & completeness | `npm run demo`; CLI with text / JSON / Markdown and exit codes; viewer with Review, Cypher and Store tabs; `npm test` (16 passing) |
+| Functionality & completeness | `npm run demo`; CLI with text / JSON / Markdown and exit codes; viewer with Review, Cypher and Store tabs; `npm test` |
 | Usefulness | A failure TypeScript cannot catch; the shortlist names `sla.test.ts`, a test outside the diff; silent on the unrelated weight PR; `--markdown` for PR comments; works on any two folders |
-| Documentation & reproducibility | This README, verified from a fresh clone; `docs/SPEC.md`, `docs/adr/`, `GLOSSARY.md`, `docs/RESEARCH.md` |
+| Documentation & reproducibility | This README, the [spec](docs/SPEC.md), [design decisions](docs/adr/), [glossary](GLOSSARY.md), and [research notes](docs/RESEARCH.md) |
 | Creativity | "Same type, new meaning": a graph of meaning, not of imports |
 
 ## Project structure
@@ -200,7 +202,7 @@ src/cli/              analyze, build, cypher, demo, text / JSON / Markdown forma
 src/viewer/           Express server (read-only store) and the static UI (Cytoscape)
 queries/              Cypher run by the tool, plus presets
 examples/             fixture monorepo
-test/                 node:test suites (in-memory Relate stores)
+test/                 node:test suites (in-memory and committed Relate stores)
 ```
 
 ## Known limitations
@@ -211,9 +213,8 @@ test/                 node:test suites (in-memory Relate stores)
   Values stored in a variable first are reported as REVIEW.
 - Hidden links must be declared in `contract-drift.links.json`.
 - Only `@unit` changes are in the fixture; `@format` and `@tz` use the same code path but have no fixture case.
-- Not done in this build (time): a CLI output snapshot test, an end-to-end test that opens the committed
-  store in a child process, a viewer screenshot of the Cypher tab, a GitHub Action example, and reading two
-  git refs directly (`--since`).
+- The analyzer accepts folders or the fixture’s saved comparisons against `base`. Check out git refs
+  into separate folders to compare them.
 - The viewer must be stopped before `npm run build:graph -- --force`: Relate allows no reader while the
   writer holds the store.
 - The `relate` CLI command shown in the Store tab is optional and was not part of the tested path.
@@ -226,4 +227,4 @@ the graph. All output shown in this README comes from real runs.
 
 ## License
 
-MIT, see `LICENSE`.
+[MIT](LICENSE).

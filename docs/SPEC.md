@@ -46,8 +46,8 @@ call an LLM, or need any account or key.
 `npm install && npm run demo` = `build:graph` (no-op on a fresh clone) + `analyze` + `viewer`.
 
 ### F5. Use on another repo (documented, untested beyond fixture)
-`npx contract-drift analyze --base ./old-checkout --head ./new-checkout --store ./tmp/review.rl`
-(two folders; a `contract-drift.links.json` in the head folder is optional).
+`npm run analyze -- --base ./old-checkout --head ./new-checkout --store ./review.rl`
+(two folders, a new store path, and an optional `contract-drift.links.json` in the head folder).
 
 ## 3. Graph model (Relate, single file `data/contract-drift.rl`)
 
