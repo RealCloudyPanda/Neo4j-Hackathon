@@ -8,11 +8,11 @@
     "contract-drift": "bin/contract-drift.js"
   },
   "scripts": {
-    "analyze": "tsx src/cli/index.ts analyze",
-    "build:graph": "tsx src/cli/index.ts build",
-    "cypher": "tsx src/cli/index.ts cypher",
-    "viewer": "tsx src/cli/index.ts viewer",
-    "demo": "tsx src/cli/index.ts demo",
+    "analyze": "node --import tsx src/cli/index.ts analyze",
+    "build:graph": "node --import tsx src/cli/index.ts build",
+    "cypher": "node --import tsx src/cli/index.ts cypher",
+    "viewer": "node --import tsx src/cli/index.ts viewer",
+    "demo": "node --import tsx src/cli/index.ts demo",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
