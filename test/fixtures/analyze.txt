@@ -1,0 +1,33 @@
+
+Contract Drift  base → pr-duration-ms        store data/contract-drift.rl (read-only)
+
+DRIFT  OrderSummary.duration   @unit seconds → milliseconds
+       declared   packages/contracts/src/order.ts:9
+       produced   order.summary  apps/api/src/routers/order.ts:10   (in diff)
+
+Reviewer shortlist                                                   in diff
+   1  MISMATCH  apps/web/src/views/orderRow.ts:14                    no
+                took: formatDuration(order.duration),
+                passes to formatDuration(seconds) @unit seconds
+                apps/web/src/lib/format.ts:2
+                path  FieldVersion ─READ_AT→ Usage ─PASSES_TO→ Param ─PARAM_OF→ Function
+   2  MISMATCH  apps/worker/src/sla.ts:7                             no
+                return job.durationSec > SLA_LIMIT_SECONDS;
+                hidden link: OrderSummary.duration → SlaJob.durationSec (@unit seconds)
+                via queue orders.completed (contract-drift.links.json)
+                path  FieldVersion ─LINKED_TO→ FieldVersion ─READ_AT→ Usage
+   3  REVIEW    apps/api/src/events.ts:11                            no
+                durationSec: summary.duration,
+                reads the field; no meaning tag on the way, check by hand
+                path  FieldVersion ─READ_AT→ Usage
+   4  TEST      apps/web/src/lib/format.test.ts                      no   ← not in this PR
+                imports apps/web/src/lib/format.ts
+   5  TEST      apps/web/src/views/orderRow.test.ts                  no   ← not in this PR
+                imports apps/web/src/views/orderRow.ts
+   6  TEST      apps/worker/src/sla.test.ts                          no   ← not in this PR
+                imports apps/worker/src/sla.ts
+   7  TEST      apps/api/src/routers/order.test.ts                   yes
+                reads the field itself
+
+Not affected: 3 other usages of 3 contract fields.   2 MISMATCH · 1 REVIEW · 4 tests
+Explore: npm run viewer   ·   Query: npm run cypher -- --preset impact-paths
