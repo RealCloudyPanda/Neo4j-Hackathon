@@ -20,7 +20,7 @@ export function tagsFromJsDoc(node: JSDocableNode): Tags {
 export function tagsFromText(text: string): Tags {
   const tags: Tags = {};
   for (const t of MEANING_TAGS) {
-    const m = new RegExp(`@${t}\\s+([\\w.-]+)`).exec(text);
+    const m = new RegExp(`@${t}\\s+([^\\s*]+)`).exec(text);
     if (m) tags[t] = m[1];
   }
   return tags;

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { ROOT } from "../src/relate/store.ts";
+import { tagsFromText } from "../src/extract/fields.ts";
 import { extractSnapshot } from "../src/extract/index.ts";
 
 const snap = (id: string) => join(ROOT, "examples/shop-monorepo/snapshots", id);
@@ -41,4 +42,9 @@ test("usages: orderRow passes to formatDuration(seconds); events.ts has no param
 test("producers: toSummary writes duration", () => {
   const p = base.producers.find((x) => x.key === "OrderSummary.duration" && x.path === "apps/api/src/routers/order.ts");
   assert.equal(p?.name, "order.summary");
+});
+
+test("parameter tags preserve IANA time zones and positive offsets", () => {
+  assert.deepEqual(tagsFromText("/** @tz America/Toronto */"), { tz: "America/Toronto" });
+  assert.deepEqual(tagsFromText("/** @tz Etc/GMT+5*/"), { tz: "Etc/GMT+5" });
 });
