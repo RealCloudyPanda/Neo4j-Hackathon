@@ -331,7 +331,12 @@ async function main() {
   try {
     const { reviews } = await api("/api/reviews");
     state.reviews = reviews;
-    selectReview(0);
+    // Deep links for demos and screenshots: ?pr=<head>&entry=<rank>
+    const q = new URLSearchParams(location.search);
+    const pr = Math.max(0, reviews.findIndex((r) => r.head === q.get("pr")));
+    state.review = reviews[pr];
+    await selectDrift(state.review.drifts[0]?.id ?? null);
+    if (q.get("entry")) setActive(Number(q.get("entry")) - 1, { scroll: true });
   } catch (err) {
     const b = $("#banner");
     b.hidden = false;
