@@ -31,6 +31,7 @@ export function testEntries(store: Store, d: DriftRow, head: string): Omit<Entry
       code: null,
       hops,
       inDiff,
+      reaches: r.reaches,
       reason: hops === 0 ? "reads the field itself" : `imports ${r.reaches.join(", ")}${hops > 1 ? ` (${hops} hops)` : ""}`,
       detail: inDiff ? "changed in this PR" : "not in this PR",
       pathText: hops === 0 ? "Test ─reads→ field" : `Test ─IMPORTS${hops > 1 ? `×${hops}` : ""}→ File`,

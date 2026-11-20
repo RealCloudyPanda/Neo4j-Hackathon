@@ -11,7 +11,7 @@ export function saveFlags(store: Store, driftId: string, entries: Omit<Entry, "r
      WHERE x:Usage OR x:File
      MERGE (d)-[f:FLAGS]->(x)
      SET f.rank = r.rank, f.verdict = r.verdict, f.reason = r.reason, f.detail = r.detail,
-         f.hops = r.hops, f.pathText = r.pathText`,
+         f.hops = r.hops, f.pathText = r.pathText, f.reaches = r.reaches`,
     {
       driftId,
       rows: entries.map((e) => ({
@@ -22,6 +22,7 @@ export function saveFlags(store: Store, driftId: string, entries: Omit<Entry, "r
         detail: e.detail,
         hops: e.hops,
         pathText: e.pathText,
+        reaches: e.reaches ?? [],
       })),
     } as Params,
   );

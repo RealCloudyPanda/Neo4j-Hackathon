@@ -49,7 +49,7 @@ export function readReview(store: Store, base: string, head: string): Review {
         `MATCH (:Drift {id: $id})-[r:FLAGS]->(x)
          OPTIONAL MATCH (x)-[:IN_FILE]->(uf:File)
          RETURN x.id AS targetId, r.rank AS rank, r.verdict AS verdict, r.reason AS reason, r.detail AS detail,
-                r.hops AS hops, r.pathText AS pathText, x.path AS path, x.line AS line, x.code AS code,
+                r.hops AS hops, r.pathText AS pathText, r.reaches AS reaches, x.path AS path, x.line AS line, x.code AS code,
                 coalesce(uf.inDiff, x.inDiff) AS inDiff
          ORDER BY rank`,
         { id: d.id as string },
@@ -67,6 +67,7 @@ export function readReview(store: Store, base: string, head: string): Review {
           line: e.line == null ? null : Number(e.line),
           code: (e.code as string | null) ?? null,
           inDiff: Boolean(e.inDiff),
+          reaches: (e.reaches as string[] | null) ?? [],
         }),
       );
     return {

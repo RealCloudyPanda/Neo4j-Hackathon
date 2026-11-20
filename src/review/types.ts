@@ -23,4 +23,6 @@ export interface Entry {
   pathText: string;
   inDiff: boolean;
   rank: number;
+  /** For TEST entries: the files this test reaches through imports. */
+  reaches?: string[];
 }
