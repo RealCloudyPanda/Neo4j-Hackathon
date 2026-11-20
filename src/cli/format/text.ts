@@ -30,7 +30,7 @@ export function formatText(r: Review, o: TextOptions): string {
       out.push(`       ${s("dim", "produced")}   ${p.name}  ${p.path}:${p.line}${p.inDiff ? s("dim", "   (in diff)") : ""}`);
     }
     out.push("");
-    out.push(`${s("bold", "Reviewer shortlist")}${" ".repeat(54)}${s("dim", "in diff")}`);
+    out.push(`${s("bold", "Reviewer shortlist")}${" ".repeat(51)}${s("dim", "in diff")}`);
     for (const e of d.entries) {
       const loc = e.line ? `${e.path}:${e.line}` : e.path;
       const diff = e.inDiff ? "yes" : "no ";
