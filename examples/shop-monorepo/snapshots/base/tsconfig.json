@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "lib": ["ES2022"],
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "@shop/contracts": ["packages/contracts/src/order.ts"],
+      "@shop/testkit": ["packages/testkit/src/index.ts"]
+    }
+  },
+  "include": ["packages/**/*.ts", "apps/**/*.ts"]
+}

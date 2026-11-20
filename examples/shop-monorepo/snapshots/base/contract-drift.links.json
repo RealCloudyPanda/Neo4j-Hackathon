@@ -1,0 +1,10 @@
+{
+  "links": [
+    {
+      "from": "OrderSummary.duration",
+      "to": "SlaJob.durationSec",
+      "via": "queue orders.completed",
+      "reason": "apps/api/src/events.ts serialises the summary to JSON; the worker parses it with its own type"
+    }
+  ]
+}
