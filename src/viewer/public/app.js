@@ -152,7 +152,7 @@ async function showEvidence(e) {
   const line = e.line ?? 1;
   try {
     const s = await api(`/api/snippet?snapshot=${encodeURIComponent(state.data.head)}&path=${encodeURIComponent(e.path)}&line=${line}`);
-    if (state.data.drift.entries[state.active] !== e) return;
+    if (state.data?.drift.entries[state.active] !== e) return;
     const body = s.lines.map((l, i) => {
       const n = s.from + i;
       const row = `<span class="ln">${n}</span>${esc(l) || " "}`;
@@ -160,7 +160,9 @@ async function showEvidence(e) {
     }).join("");
     box.innerHTML = `<div class="where"><span>${esc(e.path)}${e.line ? `:${e.line}` : ""} · ${esc(state.data.head)}</span><span>${esc(e.verdict)} · ${esc(e.reason)}</span></div><pre>${body}</pre>`;
   } catch (err) {
-    box.innerHTML = `<p class="placeholder">${esc(err.message)}</p>`;
+    if (state.data?.drift.entries[state.active] === e) {
+      box.innerHTML = `<p class="placeholder">${esc(err.message)}</p>`;
+    }
   }
 }
 
@@ -175,32 +177,42 @@ function setActive(i, { scroll = false } = {}) {
   if (scroll) document.querySelector(`.entry[data-i="${state.active}"]`)?.scrollIntoView({ block: "nearest" });
 }
 
+let driftRequest = 0;
 async function selectDrift(id) {
+  const request = ++driftRequest;
+  const graph = $("#graph");
   state.driftId = id;
   state.active = -1;
+  state.data = null;
   renderRail();
+  renderHead();
+  renderShortlist();
+  $("#evidence").innerHTML = "";
   if (state.cy) {
     state.cy.destroy();
     state.cy = null;
   }
   if (!id) {
-    state.data = null;
-    renderHead();
-    renderShortlist();
     const r = state.review;
-    $("#graph").innerHTML = `<div class="empty-state"><div><h3>No meaning changes. Nothing to review.</h3>
+    graph.innerHTML = `<div class="empty-state"><div><h3>No meaning changes. Nothing to review.</h3>
       <p>No <code>@unit</code>, <code>@format</code> or <code>@tz</code> tag differs between ${esc(r.base)} and ${esc(r.head)}.</p></div></div>`;
-    $("#evidence").innerHTML = "";
     return;
   }
-  $("#graph").innerHTML = "";
-  state.data = await api(`/api/drift/${encodeURIComponent(id)}`);
+  graph.innerHTML = "";
+  try {
+    const data = await api(`/api/drift/${encodeURIComponent(id)}`);
+    if (request !== driftRequest) return;
+    state.data = data;
+  } catch (err) {
+    if (request === driftRequest) graph.textContent = err.message;
+    return;
+  }
   renderHead();
   renderShortlist();
   const before = state.data.elements.find((el) => el.data.kind === "FieldVersion" && el.data.props?.snapshot === state.data.base);
   if (before) before.classes += " before";
   state.data.elements.forEach((el) => { if (el.data.type === "BEFORE") el.classes += " before"; });
-  state.cy = drawGraph($("#graph"), state.data.elements, "node.drift");
+  state.cy = drawGraph(graph, state.data.elements, "node.drift");
   state.cy.on("tap", "node", (evt) => {
     const id = evt.target.id();
     const i = state.data.drift.entries.findIndex((e) => (state.data.highlight[e.targetId] || []).at(-1) === id || evt.target.data("props")?.id === e.targetId);
@@ -334,9 +346,11 @@ async function main() {
     // Deep links for demos and screenshots: ?pr=<head>&entry=<rank>
     const q = new URLSearchParams(location.search);
     const pr = Math.max(0, reviews.findIndex((r) => r.head === q.get("pr")));
-    state.review = reviews[pr];
+    const review = reviews[pr];
+    state.review = review;
     await selectDrift(state.review.drifts[0]?.id ?? null);
-    if (q.get("entry")) setActive(Number(q.get("entry")) - 1, { scroll: true });
+    const rank = Number(q.get("entry"));
+    if (state.review === review && Number.isInteger(rank) && rank > 0) setActive(rank - 1, { scroll: true });
   } catch (err) {
     const b = $("#banner");
     b.hidden = false;
