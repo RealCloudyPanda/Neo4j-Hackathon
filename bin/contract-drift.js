@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const result = spawnSync(
   process.execPath,
-  ["--import", "tsx", join(root, "src/cli/index.ts"), ...process.argv.slice(2)],
+  ["--import", import.meta.resolve("tsx"), join(root, "src/cli/index.ts"), ...process.argv.slice(2)],
   { stdio: "inherit" },
 );
 process.exit(result.status ?? 2);

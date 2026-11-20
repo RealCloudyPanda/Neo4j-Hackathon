@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
@@ -8,6 +9,7 @@ const cli = fileURLToPath(new URL("../bin/contract-drift.js", import.meta.url));
 
 test("analyze prints the reviewer shortlist in rank order", () => {
   const result = spawnSync(process.execPath, [cli, "analyze", "--no-color"], {
+    cwd: tmpdir(),
     encoding: "utf8",
     timeout: 15_000,
   });
