@@ -48,6 +48,10 @@ export async function runAnalyze(argv: string[]): Promise<number> {
           return 2;
         }
       }
+      if (base !== head && base !== known[0]) {
+        console.error(`The store only contains comparisons against "${known[0]}". Pass two folders to compare "${base}" and "${head}".`);
+        return 2;
+      }
     }
   } catch (err) {
     console.error(describeError(err));

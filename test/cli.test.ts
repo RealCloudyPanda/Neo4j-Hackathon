@@ -19,3 +19,14 @@ test("analyze prints the reviewer shortlist in rank order", () => {
   const expected = readFileSync(new URL("./fixtures/analyze.txt", import.meta.url), "utf8");
   assert.equal(result.stdout.replace(/[ \t]+$/gm, ""), expected.replace(/\r\n/g, "\n"));
 });
+
+test("analyze rejects a snapshot pair with no persisted comparison", () => {
+  const result = spawnSync(process.execPath, [cli, "analyze", "--base", "pr-duration-ms", "--head", "pr-weight-kg"], {
+    encoding: "utf8",
+    timeout: 15_000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 2);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /only contains comparisons against "base"/);
+});
