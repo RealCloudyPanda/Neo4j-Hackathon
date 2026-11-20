@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contract Drift · review desk</title>
+    <link rel="stylesheet" href="/vendor/plex-sans/400.css" />
+    <link rel="stylesheet" href="/vendor/plex-sans/500.css" />
+    <link rel="stylesheet" href="/vendor/plex-sans/600.css" />
+    <link rel="stylesheet" href="/vendor/plex-mono/400.css" />
+    <link rel="stylesheet" href="/vendor/plex-mono/500.css" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%231d1b17'/%3E%3Cpath d='M4 11 L8 5 L12 11' stroke='%23d2401f' stroke-width='2' fill='none'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <span class="name">Contract Drift</span>
+        <span class="tagline">same type, new meaning</span>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Views">
+        <button role="tab" id="tab-review" aria-selected="true" aria-controls="view-review" data-view="review">Review</button>
+        <button role="tab" id="tab-cypher" aria-selected="false" aria-controls="view-cypher" data-view="cypher">Cypher</button>
+        <button role="tab" id="tab-store" aria-selected="false" aria-controls="view-store" data-view="store">Store</button>
+      </nav>
+      <div class="source" title="All data comes from the committed Relate store built from the example monorepo. No keys, no network.">
+        <span class="dot" aria-hidden="true"></span>
+        Sample data · <code>examples/shop-monorepo</code> · store read-only
+      </div>
+    </header>
+
+    <div id="banner" class="banner" hidden></div>
+
+    <main>
+      <section id="view-review" class="view review" role="tabpanel" aria-labelledby="tab-review">
+        <aside class="rail" aria-label="Pull requests and drifts">
+          <h2 class="eyebrow">Pull requests</h2>
+          <ul id="prs" class="prs"></ul>
+          <h2 class="eyebrow">Meaning changes</h2>
+          <ul id="drifts" class="drifts"></ul>
+          <div class="legend" aria-label="Legend">
+            <h2 class="eyebrow">Verdicts</h2>
+            <dl>
+              <div><dt><span class="chip MISMATCH">MISMATCH</span></dt><dd>code states the old meaning</dd></div>
+              <div><dt><span class="chip REVIEW">REVIEW</span></dt><dd>no meaning stated, check by hand</dd></div>
+              <div><dt><span class="chip TEST">TEST</span></dt><dd>a test that reaches the change</dd></div>
+              <div><dt><span class="chip OK">OK</span></dt><dd>already states the new meaning</dd></div>
+            </dl>
+            <p class="keys"><kbd>j</kbd> <kbd>k</kbd> move through the shortlist · <kbd>/</kbd> Cypher</p>
+          </div>
+        </aside>
+
+        <section class="stage" aria-label="Impact graph">
+          <div class="drift-head" id="drift-head"></div>
+          <div class="graph-wrap">
+            <div id="graph" class="graph" role="img" aria-label="Impact graph of the selected drift"></div>
+            <div class="graph-key" aria-hidden="true">
+              <span><i class="k drift"></i>Drift</span>
+              <span><i class="k fv"></i>Field version</span>
+              <span><i class="k usage"></i>Usage</span>
+              <span><i class="k param"></i>Param / function</span>
+              <span><i class="k test"></i>Test file</span>
+              <span><i class="k link"></i>Hidden link</span>
+            </div>
+          </div>
+          <div class="evidence" id="evidence" aria-live="polite"></div>
+        </section>
+
+        <aside class="shortlist" aria-label="Reviewer shortlist">
+          <div class="shortlist-head">
+            <h2>Reviewer shortlist</h2>
+            <p id="tally" class="tally"></p>
+          </div>
+          <ol id="entries" class="entries"></ol>
+          <p id="not-affected" class="not-affected"></p>
+        </aside>
+      </section>
+
+      <section id="view-cypher" class="view cypher" role="tabpanel" aria-labelledby="tab-cypher" hidden>
+        <div class="console">
+          <div class="presets" id="presets" aria-label="Preset queries"></div>
+          <label for="query" class="eyebrow">Read-only Cypher against <code>data/contract-drift.rl</code></label>
+          <textarea id="query" spellcheck="false" rows="7"></textarea>
+          <div class="console-actions">
+            <button id="run" class="primary">Run <kbd>⌘ ↵</kbd></button>
+            <label class="toggle"><input type="checkbox" id="as-graph" /> Show as graph</label>
+            <span id="cypher-status" class="status" aria-live="polite"></span>
+          </div>
+        </div>
+        <div id="cypher-error" class="error" hidden></div>
+        <div id="cypher-table" class="result-table"></div>
+        <div id="cypher-graph" class="graph result-graph" hidden></div>
+      </section>
+
+      <section id="view-store" class="view store" role="tabpanel" aria-labelledby="tab-store" hidden>
+        <div id="store-info"></div>
+      </section>
+    </main>
+
+    <script src="/vendor/cytoscape/cytoscape.min.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
