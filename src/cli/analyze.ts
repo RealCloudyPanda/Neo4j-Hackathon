@@ -1,6 +1,6 @@
-import { existsSync, statSync } from "node:fs";
+import { closeSync, existsSync, openSync, rmSync, statSync } from "node:fs";
 import { basename, relative, resolve } from "node:path";
-import { populate, readMeta } from "../graph/build.ts";
+import { populate, readMeta, TOOL_VERSION } from "../graph/build.ts";
 import { DEFAULT_STORE, describeError, loadQuery, openStore, ROOT, type Store } from "../relate/store.ts";
 import { readReview } from "../review/read.ts";
 import { parseArgs } from "./args.ts";
@@ -31,12 +31,36 @@ export async function runAnalyze(argv: string[]): Promise<number> {
       base = basename(resolve(baseArg));
       head = basename(resolve(headArg));
       if (base === head) [base, head] = ["base", "head"];
-      store = openStore(storeArg ?? ":memory:");
-      populate(store, [
-        { id: base, dir: baseArg },
-        { id: head, dir: headArg },
-      ]);
-      storeLabel = storeArg ? `${storeArg} (new)` : "in memory (folders)";
+      const path = storeArg ?? ":memory:";
+      const persisted = path !== ":memory:";
+      if (persisted) {
+        try {
+          closeSync(openSync(path, "wx"));
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+            throw new Error(`Store already exists at ${path}. Choose a new file for this folder comparison.`);
+          }
+          throw err;
+        }
+      }
+      try {
+        store = openStore(path);
+        populate(store, [
+          { id: base, dir: baseArg },
+          { id: head, dir: headArg },
+        ]);
+        if (persisted) {
+          store.query(
+            "CREATE (:Meta {key:'build', fingerprint:'', toolVersion:$version, snapshots:$snapshots, builtAt:$at})",
+            { version: TOOL_VERSION, snapshots: [base, head], at: new Date().toISOString() },
+          );
+          store.db.checkpoint();
+        }
+      } catch (err) {
+        if (persisted) rmSync(path, { force: true });
+        throw err;
+      }
+      storeLabel = persisted ? `${path} (new)` : "in memory (folders)";
     } else {
       const path = storeArg ?? DEFAULT_STORE;
       store = openStore(path, { readOnly: true });
