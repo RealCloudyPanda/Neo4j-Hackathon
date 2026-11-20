@@ -47,6 +47,8 @@ variable-length `[*1..3]`, unbounded `[:R*]`, quantified `-[:R]->{1,3}`, `shorte
 `OPTIONAL MATCH`, `EXISTS { }` subquery, `CALL { WITH … }` subquery, `STARTS WITH`, `CALL db.labels()`,
 `CREATE INDEX … IF NOT EXISTS`, `CREATE CONSTRAINT … REQUIRE … IS UNIQUE` (enforced),
 `MATCH (n) DETACH DELETE n`, explicit transactions.
+Also verified for the planned queries: zero-length `-[:LINKED_TO*0..2]->`, multi-type
+`-[:LINKED_TO|READ_AT*1..3]->`, `min(length(p))` aggregation, dynamic property access `b[tag]`.
 Not available: APOC (`apoc.*` → UnknownFunction). Do string work in JS.
 
 ### Gotchas (all observed, design around them)
