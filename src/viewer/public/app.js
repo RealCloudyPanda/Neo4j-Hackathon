@@ -140,7 +140,26 @@ function renderHead() {
   const prod = d.producers.map((p) => `<span>produced by <code>${esc(p.name)}</code> ${esc(p.path)}:${p.line}${p.inDiff ? " (in diff)" : ""}</span>`).join("");
   $("#drift-head").innerHTML = `
     <h1><code>${esc(d.displayName ?? d.key)}</code><span class="change">@${esc(d.tag)} <span class="from">${esc(d.before)}</span> → <span class="to">${esc(d.after)}</span></span></h1>
-    <div class="meta"><span title="${esc(d.key)}">declared <code>${esc(d.declared.path)}:${d.declared.line}</code></span>${prod}<span>${esc(state.data.base)} → ${esc(state.data.head)}</span></div>`;
+    <div class="meta"><span title="${esc(d.key)}">declared <code>${esc(d.declared.path)}:${d.declared.line}</code></span>${prod}<span>${esc(state.data.base)} → ${esc(state.data.head)}</span></div>
+    <div class="repair-tools"><a download="contract-drift.md" href="/api/export/${encodeURIComponent(state.data.base)}/${encodeURIComponent(state.data.head)}">Export review Markdown</a>
+    <a download="contract-drift.json" href="/api/export/${encodeURIComponent(state.data.base)}/${encodeURIComponent(state.data.head)}?format=json">JSON</a>
+    <label>Compare repair from <select id="repair-from">${state.reviews.filter(r => r.base === state.data.base && r.head !== state.data.head && r.head !== r.base).map(r => `<option value="${esc(r.head)}">${esc(r.title)}</option>`).join('')}</select></label>
+    <button id="compare-repair">Compare</button><div id="repair-result" role="status"></div></div>`;
+}
+
+async function compareRepair() {
+  const current = state.data;
+  const before = $('#repair-from')?.value;
+  if (!current || !before) return;
+  const q = new URLSearchParams({base:current.base, before, after:current.head});
+  const box = $('#repair-result'); box.textContent = 'Comparing evidence…';
+  try {
+    const repair = await api(`/api/repair?${q}`);
+    if (state.data !== current) return;
+    box.innerHTML = `${repair.resolved} explicitly repaired paths · ${repair.remaining} mismatches remain.
+      <a download="repair-comparison.md" href="/api/repair?${esc(q.toString())}&format=markdown">Export comparison</a>
+      <p>${esc(repair.note)}</p>`;
+  } catch (err) { if (state.data === current) box.textContent = err.message; }
 }
 
 async function showEvidence(e) {
@@ -309,7 +328,8 @@ async function showView(name) {
 document.addEventListener("click", (e) => {
   const t = e.target.closest("button, .entry");
   if (!t) return;
-  if (t.dataset.view) showView(t.dataset.view);
+  if (t.id === 'compare-repair') compareRepair();
+  else if (t.dataset.view) showView(t.dataset.view);
   else if (t.dataset.pr) selectReview(Number(t.dataset.pr));
   else if (t.dataset.drift) selectDrift(t.dataset.drift);
   else if (t.dataset.preset) {

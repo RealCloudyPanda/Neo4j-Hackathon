@@ -251,3 +251,8 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+.repair-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 13px; }
+.repair-tools select, .repair-tools button { font: inherit; padding: 5px; border: 1px solid var(--rule); border-radius: 4px; background: var(--card); color: var(--ink); }
+#repair-result { width: 100%; color: var(--ink2); }
+#repair-result p { margin: 5px 0; max-width: 85ch; }
