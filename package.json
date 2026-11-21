@@ -13,7 +13,7 @@
     "cypher": "node --import tsx src/cli/index.ts cypher",
     "viewer": "node --import tsx src/cli/index.ts viewer",
     "demo": "node --import tsx src/cli/index.ts demo",
-    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "test": "node --import tsx --test --test-concurrency=1 \"test/**/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "engines": {
