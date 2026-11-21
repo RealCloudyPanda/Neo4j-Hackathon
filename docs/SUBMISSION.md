@@ -112,3 +112,10 @@ them. The product itself uses no AI: every finding comes from the graph. All out
 - Relate capabilities: embedded Node library (`@relate/relate` 1.1.0), single-file store, Cypher (variable-length paths, `MERGE`/`UNWIND` loading, uniqueness constraints, explicit transactions), read-only opens.
 - Third-party tools: ts-morph, Express, Cytoscape.js, tsx, TypeScript.
 - AI tools: [[OWNER: name the assistants you actually used, e.g. Claude Code and Codex]] for planning, code and docs; no AI at runtime.
+
+## Before you press submit
+- [ ] Watch the video once: under 2:00, captions readable, public or unlisted.
+- [ ] Fresh clone on another folder: `npm install && npm run demo` works.
+- [ ] Repo still public with topics `relate` and `relate-neo4j-hackathon`.
+- [ ] Fill the one `[[OWNER]]` line above.
+- [ ] Submit by Dec 9; the deadline is Dec 11, 6:00 PM PST.
