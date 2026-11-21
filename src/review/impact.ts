@@ -27,6 +27,7 @@ export function pathText(rels: string[]): string {
 /** Verdict rules from SPEC §3: compare the tag stated on the path with the drift's before / after. */
 export function judge(d: DriftRow, r: ImpactRow): { verdict: Verdict; reason: string; detail: string | null } {
   const at = `@${d.tag}`;
+  if (d.after === '<removed>') return { verdict: 'REVIEW', reason: `${at} metadata removed; meaning is now unspecified, verify this consumer by hand`, detail: null };
   if (r.param && r.paramTag) {
     const where = `${r.fnPath}:${r.paramLine}`;
     const stated = `passes to ${r.fn}(${r.param}) ${at} ${r.paramTag}`;
