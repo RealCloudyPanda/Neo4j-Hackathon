@@ -33,5 +33,7 @@ test('repair comparison tracks partial and complete repairs without hiding origi
  const repair = compareReviews(broken,fixed);
  assert.equal(repair.resolved,2); assert.equal(repair.remaining,0);
  assert.match(repairMarkdown(repair), /2 explicitly repaired/);
+ assert.ok(repairMarkdown(repair).startsWith('# Repair comparison\n\n'));
+ assert.ok(repairMarkdown(repair).includes('\n| Evidence | Before | After |\n'));
  assert.equal(fixed.drifts.length,1);
 });
