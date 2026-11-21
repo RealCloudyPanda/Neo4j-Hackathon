@@ -103,3 +103,12 @@ checking out git refs directly, and a GitHub Action that posts the `--markdown` 
 Planning, code and docs were drafted with AI coding assistants under my direction and checked by running
 them. The product itself uses no AI: every finding comes from the graph. All output shown comes from real runs.
 ```
+
+**Built with:** `relate` · `cypher` · `typescript` · `node.js` · `ts-morph` · `express` · `cytoscape.js`
+
+**Try it out:** `https://github.com/RealCloudyPanda/Neo4j-Hackathon`
+
+**Statement of tools** (if the form asks separately):
+- Relate capabilities: embedded Node library (`@relate/relate` 1.1.0), single-file store, Cypher (variable-length paths, `MERGE`/`UNWIND` loading, uniqueness constraints, explicit transactions), read-only opens.
+- Third-party tools: ts-morph, Express, Cytoscape.js, tsx, TypeScript.
+- AI tools: [[OWNER: name the assistants you actually used, e.g. Claude Code and Codex]] for planning, code and docs; no AI at runtime.
