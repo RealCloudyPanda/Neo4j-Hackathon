@@ -6,6 +6,7 @@ export const HELP = `Contract Drift: catch the PR that passes TypeScript but cha
 
 Usage
   contract-drift analyze [--base <snapshot|dir>] [--head <snapshot|dir>] [--store <file>]
+                         [--case <authored-head>] [--repair-from <previous-head>]
                          [--json | --markdown] [--no-color] [--show-cypher]
   contract-drift build [--force] [--store <file>]
   contract-drift cypher "<read-only query>" | --preset <name> | --list-presets
@@ -20,6 +21,7 @@ npm scripts
   npm run demo                  build:graph → analyze → viewer
 
 Exit codes
+  Repair: 0 no remaining MISMATCH; 1 remaining MISMATCH
   0  no MISMATCH found     1  at least one MISMATCH     2  usage or store error
 `;
 
