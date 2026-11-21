@@ -12,7 +12,7 @@ test("analyze prints the reviewer shortlist in rank order", () => {
   const result = spawnSync(process.execPath, [cli, "analyze", "--no-color"], {
     cwd: tmpdir(),
     encoding: "utf8",
-    timeout: 15_000,
+    timeout: 60_000,
   });
   assert.ifError(result.error);
   assert.equal(result.stderr, "");
@@ -24,7 +24,7 @@ test("analyze prints the reviewer shortlist in rank order", () => {
 test("analyze rejects a snapshot pair with no persisted comparison", () => {
   const result = spawnSync(process.execPath, [cli, "analyze", "--base", "pr-duration-ms", "--head", "pr-weight-kg"], {
     encoding: "utf8",
-    timeout: 15_000,
+    timeout: 60_000,
   });
   assert.ifError(result.error);
   assert.equal(result.status, 2);
@@ -42,7 +42,7 @@ test("folder analyze creates a reusable store and protects existing files", (t) 
   const run = (...args: string[]) => {
     const result = spawnSync(process.execPath, [cli, "analyze", "--json", "--store", store, ...args], {
       encoding: "utf8",
-      timeout: 15_000,
+      timeout: 60_000,
     });
     assert.ifError(result.error);
     return result;

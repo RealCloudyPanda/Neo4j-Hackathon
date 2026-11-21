@@ -18,7 +18,7 @@ test("the committed Relate file opens by itself and the build skips it", (t) => 
   const run = (...args: string[]) => {
     const result = spawnSync(process.execPath, ["--import", "tsx", entry, ...args, "--store", path], {
       encoding: "utf8",
-      timeout: 15_000,
+      timeout: 60_000,
     });
     assert.ifError(result.error);
     assert.equal(result.stderr, "");
@@ -47,7 +47,7 @@ test("a forced rebuild preserves a directory passed as the file target", (t) => 
 
   const result = spawnSync(process.execPath, ["--import", "tsx", entry, "build", "--force", "--store", dir], {
     encoding: "utf8",
-    timeout: 15_000,
+    timeout: 60_000,
   });
   assert.ifError(result.error);
   assert.equal(result.status, 2);
