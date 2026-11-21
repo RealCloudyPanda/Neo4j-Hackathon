@@ -179,13 +179,13 @@ npm run analyze -- --case telemetry-fixed --repair-from telemetry-broken --json
 npm run analyze -- --case telemetry-fixed --repair-from telemetry-broken --markdown
 ```
 
-The last comparison reports two explicitly repaired paths and zero remaining mismatches. The original `seconds → milliseconds` drift remains visible. A disappeared path is **missing evidence**, not a proven repair; OK only confirms matching explicit metadata, not runtime correctness. The viewer's **Compare repair from** control runs the same comparison and provides Markdown evidence downloads; each review also exports JSON or Markdown.
+The last comparison reports two explicitly repaired paths and zero remaining mismatches. Repair evidence keeps the source column, so two consumers on the same line remain separate in both JSON and Markdown; a fresh temporary four-snapshot project verifies partial and complete repairs. Source movement is conservatively reported as missing/new evidence rather than guessed as a repair. The original `seconds → milliseconds` drift remains visible. A disappeared path is **missing evidence**, not a proven repair; OK only confirms matching explicit metadata, not runtime correctness. The viewer's **Compare repair from** control runs the same comparison and provides Markdown evidence downloads; each review also exports JSON or Markdown.
 
 ![Telemetry repair: both consumers explicitly updated while the original contract drift remains visible](docs/images/telemetry-repair.png)
 
 Field identities use a module-relative path plus qualified owner, for example `schema/event.ts#Task.elapsed`, so same-named contracts in different modules or namespaces stay separate. Short names remain in the UI. Hidden-link selectors may use a short name only when unambiguous. Removing an existing meaning tag retains its untagged counterpart and produces an explicit REVIEW warning instead of silently clearing the drift.
 
-Verification on 2026-11-21: 39 tests pass with typecheck green; all six authored cases and both repair exports were run through the CLI. The full suite checks alias flows, duplicate names, removed metadata, all fixture typechecks, persisted graph behavior, and the read-only viewer API.
+Verification on 2026-11-21: 40 tests pass with typecheck green; all six authored cases and both repair exports were run through the CLI. The full suite checks alias flows, duplicate names, removed metadata, all fixture typechecks, persisted graph behavior, and the read-only viewer API.
 
 ## Where the data lives
 
