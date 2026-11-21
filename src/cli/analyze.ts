@@ -3,6 +3,7 @@ import { basename, relative, resolve } from "node:path";
 import { populate, readMeta, TOOL_VERSION } from "../graph/build.ts";
 import { DEFAULT_STORE, describeError, loadQuery, openStore, ROOT, type Store } from "../relate/store.ts";
 import { readReview } from "../review/read.ts";
+import { CASE_CATALOG } from '../graph/catalog.ts';
 import { parseArgs } from "./args.ts";
 import { formatJson } from "./format/json.ts";
 import { formatMarkdown } from "./format/markdown.ts";
@@ -18,8 +19,9 @@ export const QUERIES_USED = ["drift", "impact", "tests"];
  */
 export async function runAnalyze(argv: string[]): Promise<number> {
   const { flags } = parseArgs(argv, ["json", "markdown", "no-color", "show-cypher"]);
-  const baseArg = String(flags.base ?? "base");
-  const headArg = String(flags.head ?? "pr-duration-ms");
+  const selected = CASE_CATALOG.find(c => c.head === String(flags.case ?? flags.head ?? 'pr-duration-ms'));
+  const baseArg = String(flags.base ?? selected?.base ?? "base");
+  const headArg = String(flags.case ?? flags.head ?? "pr-duration-ms");
   const storeArg = typeof flags.store === "string" ? flags.store : undefined;
 
   let store: Store;
@@ -51,8 +53,8 @@ export async function runAnalyze(argv: string[]): Promise<number> {
         ]);
         if (persisted) {
           store.query(
-            "CREATE (:Meta {key:'build', fingerprint:'', toolVersion:$version, snapshots:$snapshots, builtAt:$at})",
-            { version: TOOL_VERSION, snapshots: [base, head], at: new Date().toISOString() },
+            "CREATE (:Meta {key:'build', fingerprint:'', toolVersion:$version, snapshots:$snapshots, comparisons:$pairs, builtAt:$at})",
+            { pairs: JSON.stringify([{base,head}]), version: TOOL_VERSION, snapshots: [base, head], at: new Date().toISOString() },
           );
           store.db.checkpoint();
         }
@@ -72,8 +74,8 @@ export async function runAnalyze(argv: string[]): Promise<number> {
           return 2;
         }
       }
-      if (base !== head && base !== known[0]) {
-        console.error(`The store only contains comparisons against "${known[0]}". Pass two folders to compare "${base}" and "${head}".`);
+      if (!readMeta(store)?.comparisons.some(c => c.base === base && c.head === head)) {
+        console.error(`Comparison "${base}..${head}" is not saved. Pass two folders or select an authored --case.`);
         return 2;
       }
     }

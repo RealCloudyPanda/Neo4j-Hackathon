@@ -45,9 +45,9 @@ export function fingerprint(): string {
   return h.digest("hex");
 }
 
-export function readMeta(store: Store): { fingerprint: string; toolVersion: string; snapshots: string[]; builtAt: string } | null {
+export function readMeta(store: Store): { fingerprint: string; toolVersion: string; snapshots: string[]; builtAt: string; comparisons: {base: string; head: string; title?: string}[] } | null {
   const rows = store.query<Record<string, unknown>>(
-    "MATCH (m:Meta {key:'build'}) RETURN m.fingerprint AS fingerprint, m.toolVersion AS toolVersion, m.snapshots AS snapshots, m.builtAt AS builtAt",
+    "MATCH (m:Meta {key:'build'}) RETURN m.fingerprint AS fingerprint, m.toolVersion AS toolVersion, m.snapshots AS snapshots, m.builtAt AS builtAt, m.comparisons AS comparisons",
   );
   if (!rows.length) return null;
   const r = rows[0];
@@ -56,6 +56,7 @@ export function readMeta(store: Store): { fingerprint: string; toolVersion: stri
     toolVersion: String(r.toolVersion),
     snapshots: (r.snapshots as string[]) ?? [],
     builtAt: String(r.builtAt ?? ""),
+    comparisons: r.comparisons ? JSON.parse(String(r.comparisons)) : ((r.snapshots as string[]) ?? []).map(head => ({base: (r.snapshots as string[])[0], head})),
   };
 }
 
@@ -86,7 +87,8 @@ export function buildStore(target: string, log: (s: string) => void = () => {}):
     const store = openStore(scratch);
     const ids = SNAPSHOT_CATALOG.map(s => s.id);
     populate(store, SNAPSHOT_CATALOG, log, CASE_CATALOG);
-    store.query("MERGE (m:Meta {key:'build'}) SET m.fingerprint = $fp, m.toolVersion = $v, m.snapshots = $s, m.builtAt = $at", {
+    store.query("MERGE (m:Meta {key:'build'}) SET m.fingerprint = $fp, m.toolVersion = $v, m.snapshots = $s, m.builtAt = $at, m.comparisons = $pairs", {
+      pairs: JSON.stringify(CASE_CATALOG),
       fp: fingerprint(),
       v: TOOL_VERSION,
       s: ids,
