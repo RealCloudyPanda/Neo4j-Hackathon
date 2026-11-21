@@ -29,5 +29,5 @@ Reviewer shortlist                                                   in diff
    7  TEST      apps/api/src/routers/order.test.ts                   yes
                 reads the field itself
 
-Not affected: 3 other usages of 3 contract fields.   2 MISMATCH · 1 REVIEW · 4 tests
+Not affected: 4 other usages of 3 contract fields.   2 MISMATCH · 1 REVIEW · 4 tests
 Explore: npm run viewer   ·   Query: npm run cypher -- --preset impact-paths
