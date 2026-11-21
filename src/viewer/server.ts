@@ -13,6 +13,7 @@ import { readMeta } from "../graph/build.ts";
 import { DEFAULT_STORE, describeError, loadQuery, openStore, ROOT, type Store } from "../relate/store.ts";
 import { writeClause } from "../relate/guard.ts";
 import { readReview } from "../review/read.ts";
+import { snapshotDirectory } from '../graph/catalog.ts';
 import { SNAPSHOT_TITLES } from "../extract/index.ts";
 
 const EXAMPLES = join(ROOT, "examples");
@@ -135,8 +136,10 @@ export function driftGraph(store: Store, id: string) {
 }
 
 function snippet(snapshot: string, path: string, line: number) {
-  const file = resolve(SNAPSHOTS, snapshot, path);
-  const rel = relative(EXAMPLES, file);
+  const root = snapshotDirectory(snapshot);
+  if (!root || !Number.isInteger(line) || line < 1) return null;
+  const file = resolve(root, path);
+  const rel = relative(root, file);
   if (rel.startsWith("..") || rel.includes(`..${sep}`) || !existsSync(file) || !statSync(file).isFile()) return null;
   const lines = readFileSync(file, "utf8").split("\n");
   const from = Math.max(1, line - 3);
@@ -190,14 +193,13 @@ export function createApp(storePath = DEFAULT_STORE) {
   app.get("/api/reviews", (_req, res) => {
     const s = need(res);
     if (!s) return;
-    const snapshots = readMeta(s)?.snapshots ?? [];
-    const [base, ...heads] = snapshots;
-    const reviews = [...heads, base].map((head) => {
+    const cases = readMeta(s)?.comparisons ?? [];
+    const reviews = cases.map(({base, head, title}) => {
       const r = readReview(s, base, head);
       return {
         base,
         head,
-        title: SNAPSHOT_TITLES[head] ?? head,
+        title: title ?? SNAPSHOT_TITLES[head] ?? head,
         counts: r.counts,
         drifts: r.drifts.map((d) => ({ id: d.id, key: d.key, displayName: d.displayName, tag: d.tag, before: d.before, after: d.after })),
       };
