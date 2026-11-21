@@ -87,6 +87,7 @@ export function loadSnapshot(store: Store, s: SnapshotData): void {
       line: u.line,
       col: u.col,
       kind: u.kind,
+      flowNote: u.flowNote ?? null,
       code: u.code,
       inTest: testPaths.has(u.path),
       fv: fvId(snap, u.key),
@@ -97,7 +98,7 @@ export function loadSnapshot(store: Store, s: SnapshotData): void {
        MATCH (v:FieldVersion {id: r.fv}), (file:File {id: r.fileId})
        MERGE (u:Usage {id: r.id})
        SET u.snapshot = r.snapshot, u.key = r.key, u.path = r.path, u.line = r.line, u.col = r.col,
-           u.kind = r.kind, u.code = r.code, u.inTest = r.inTest
+           u.flowNote = r.flowNote, u.kind = r.kind, u.code = r.code, u.inTest = r.inTest
        MERGE (v)-[:READ_AT]->(u)
        MERGE (u)-[:IN_FILE]->(file)`,
       usageRows,
