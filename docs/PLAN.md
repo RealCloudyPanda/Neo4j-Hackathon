@@ -2,7 +2,7 @@
 
 Read first: `docs/SPEC.md` (what), `docs/RESEARCH.md` (Relate gotchas: no `close()`, one writer per
 store, `.rl` not byte-deterministic, constraint-not-index), `GLOSSARY.md` (names in code must match).
-One task = one commit (conventional message). Run the acceptance check before committing. Do not push.
+One task = one commit (conventional message). Run the acceptance check before committing. Push verified changes only when authorized by the owner.
 No AI attribution in commits. Use `:memory:` stores in unit tests; only task 13 writes `data/contract-drift.rl`.
 
 Stack: Node 22, TypeScript run via `tsx` (no build step for CLI), `ts-morph`, `@relate/relate`, Express,
@@ -157,3 +157,14 @@ test/                    *.test.ts
 
 Stretch (only if all above are done): `@format` / `@tz` fixture case (third PR snapshot); `--since` mode
 reading two git refs into temp folders; GitHub Action example YAML posting `--markdown`.
+
+## Completed review and repair pass — 2026-11-21
+
+1. Qualified module and namespace field identity, readable display names, and ambiguity checks for hidden-link selectors.
+2. Removed-metadata REVIEW warnings with untagged counterparts retained in the graph.
+3. Bounded scalar/callable alias flow, renamed destructuring, transform REVIEW, fan-out retention, and source-accurate cross-file evidence.
+4. Independent telemetry fixture: base/broken/partial/fixed; all four snapshots independently typecheck. Saved comparisons are explicit catalog entries.
+5. CLI case selection, repair comparison JSON/Markdown, read-only viewer repair and export APIs, and comparison/download controls.
+6. Rebuilt committed `.rl` store, fingerprint skip check, six-case CLI verification, and browser comparison/export coverage. README now documents the actual authored repair sequence and analysis limits.
+
+Pending owner delivery work remains video/working-demo publication, final tool disclosure wording, and submission. No external submission was performed.

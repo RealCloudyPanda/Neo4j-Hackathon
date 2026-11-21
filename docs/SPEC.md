@@ -45,7 +45,7 @@ call an LLM, or need any account or key.
 ### F4. Judge one-liner
 `npm install && npm run demo` = `build:graph` (no-op on a fresh clone) + `analyze` + `viewer`.
 
-### F5. Use on another repo (documented, untested beyond fixture)
+### F5. Use on another repo (covered by folder-store regression tests)
 `npm run analyze -- --base ./old-checkout --head ./new-checkout --store ./review.rl`
 (two folders, a new store path, and an optional `contract-drift.links.json` in the head folder).
 
@@ -92,8 +92,8 @@ MATCH (f:Field)<-[:VERSION_OF]-(b:FieldVersion {snapshot:$base})
 MATCH (f)<-[:VERSION_OF]-(h:FieldVersion {snapshot:$head})
 UNWIND ['unit','format','tz'] AS tag
 WITH f, b, h, tag, b[tag] AS before, h[tag] AS after
-WHERE before IS NOT NULL AND after IS NOT NULL AND before <> after
-RETURN f.key AS key, tag, before, after, b.id AS baseId, h.id AS headId
+WHERE before IS NOT NULL AND (after IS NULL OR before <> after)
+RETURN f.key AS key, tag, before, coalesce(after, '<removed>') AS after, b.id AS baseId, h.id AS headId
 ```
 (Verified in Relate 1.1.0: dynamic property access `b[tag]` with `UNWIND` returns the expected row.)
 
@@ -289,3 +289,13 @@ Record at 1440×900, terminal font 18 px, no music needed; captions burned in.
 - [ ] LICENSE (MIT) at root
 - [ ] No secrets, no `.env`, no network needed at runtime
 - [ ] Submitted before 2026-12-11 21:00 ET (aim for 2026-12-09)
+
+## 11. Implemented review and repair extensions — 2026-11-21
+
+- Canonical field keys are `<module-relative-path>#<namespace.owner.field>`. `displayName` keeps evidence readable. Ambiguous short hidden-link selectors are rejected; fully qualified selectors resolve directly.
+- Every field counterpart remains available when meaning metadata is removed. A removed tag is persisted as `<removed>` drift and ranked REVIEW with a metadata warning. No unit is inferred.
+- Scalar aliases and renamed destructuring follow at most eight immutable steps; immutable callable aliases preserve parameter tags. Transform and unresolved branches remain REVIEW even beside a direct tagged sink. Sink coordinates come from the actual source file. Mutable aliases and arbitrary arithmetic conversion are not treated as proven repairs.
+- `src/graph/catalog.ts` defines seven snapshots and six explicit pairs: shop duration, weight, self, plus telemetry broken/partial/fixed against telemetry-base. Snapshot roots, ids and saved comparison pairs are independent. Unpersisted pairs are rejected by the CLI.
+- `analyze --case <head>` selects that authored base and head. `--repair-from <previous-head>` compares saved reviews sharing a base; JSON and Markdown describe resolved, remaining and missing evidence paths. Same source locations are required for matching; moved evidence is missing, never silently resolved.
+- Viewer repair controls and read-only `/api/repair?base&before&after` expose the same comparison. `format=markdown` exports it. `/api/export/:base/:head?format=json` exports a review (Markdown by default).
+- Telemetry sequence retains one contract drift throughout: broken has two MISMATCH; partial one MISMATCH and one OK; fixed zero MISMATCH and two OK. Tests outside each diff remain reachable. This proves declared metadata agreement, not runtime correctness.

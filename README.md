@@ -56,8 +56,8 @@ MATCH (f:Field)<-[:VERSION_OF]-(b:FieldVersion {snapshot: $base})
 MATCH (f)<-[:VERSION_OF]-(h:FieldVersion {snapshot: $head})
 UNWIND ['unit', 'format', 'tz'] AS tag
 WITH f, b, h, tag, b[tag] AS before, h[tag] AS after
-WHERE before IS NOT NULL AND after IS NOT NULL AND before <> after
-RETURN f.key AS key, tag, before, after, b.id AS baseId, h.id AS headId
+WHERE before IS NOT NULL AND (after IS NULL OR before <> after)
+RETURN f.key AS key, tag, before, coalesce(after, '<removed>') AS after, b.id AS baseId, h.id AS headId
 ```
 
 `queries/impact.cypher`: variable-length reach through hidden links (`LINKED_TO*0..2`) to every read,
@@ -150,7 +150,7 @@ Reviewer shortlist                                                   in diff
    7  TEST      apps/api/src/routers/order.test.ts                   yes
                 reads the field itself
 
-Not affected: 3 other usages of 3 contract fields.   2 MISMATCH · 1 REVIEW · 4 tests
+Not affected: 4 other usages of 3 contract fields.   2 MISMATCH · 1 REVIEW · 4 tests
 Explore: npm run viewer   ·   Query: npm run cypher -- --preset impact-paths
 ```
 
@@ -167,6 +167,26 @@ the build fingerprint:
 The viewer also has a read-only **Cypher** tab with preset queries (Drifts, Impact paths, Tests not in diff,
 Hidden links, Whole head graph), results as a table or a graph.
 
+## Follow a repair through two services
+
+A second fixture, [telemetry-service](examples/telemetry-service/README.md), has its own schema, dashboard and alert consumer. The authored catalog holds seven snapshots and six saved comparisons across both fixture roots. Pick a case in the viewer or use `--case` (which selects its own base):
+
+```bash
+npm run analyze -- --case telemetry-broken    # exit 1: 2 MISMATCH, 0 OK
+npm run analyze -- --case telemetry-partial   # exit 1: 1 MISMATCH, 1 OK
+npm run analyze -- --case telemetry-fixed     # exit 0: 0 MISMATCH, 2 OK
+npm run analyze -- --case telemetry-fixed --repair-from telemetry-broken --json
+npm run analyze -- --case telemetry-fixed --repair-from telemetry-broken --markdown
+```
+
+The last comparison reports two explicitly repaired paths and zero remaining mismatches. The original `seconds → milliseconds` drift remains visible. A disappeared path is **missing evidence**, not a proven repair; OK only confirms matching explicit metadata, not runtime correctness. The viewer's **Compare repair from** control runs the same comparison and provides Markdown evidence downloads; each review also exports JSON or Markdown.
+
+![Telemetry repair: both consumers explicitly updated while the original contract drift remains visible](docs/images/telemetry-repair.png)
+
+Field identities use a module-relative path plus qualified owner, for example `schema/event.ts#Task.elapsed`, so same-named contracts in different modules or namespaces stay separate. Short names remain in the UI. Hidden-link selectors may use a short name only when unambiguous. Removing an existing meaning tag retains its untagged counterpart and produces an explicit REVIEW warning instead of silently clearing the drift.
+
+Verification on 2026-11-21: 39 tests pass with typecheck green; all six authored cases and both repair exports were run through the CLI. The full suite checks alias flows, duplicate names, removed metadata, all fixture typechecks, persisted graph behavior, and the read-only viewer API.
+
 ## Where the data lives
 
 | What | Where |
@@ -174,7 +194,8 @@ Hidden links, Whole head graph), results as a table or a graph.
 | Relate store (single file, committed) | [`data/contract-drift.rl`](data/contract-drift.rl) |
 | Queries the tool runs | [Drift](queries/drift.cypher), [impact](queries/impact.cypher), [test imports](queries/tests.cypher), [direct test reads](queries/tests-direct.cypher) |
 | Preset queries (CLI and viewer) | [`queries/presets/`](queries/presets/) |
-| Sample monorepo with base and two PR snapshots | [`examples/shop-monorepo/snapshots/`](examples/shop-monorepo/snapshots/) |
+| Shop fixture with base and two PR snapshots | [`examples/shop-monorepo/snapshots/`](examples/shop-monorepo/snapshots/) |
+| Telemetry fixture with base, broken, partial and fixed snapshots | [`examples/telemetry-service/snapshots/`](examples/telemetry-service/snapshots/) |
 | Hidden links (queue between services) | `examples/shop-monorepo/snapshots/*/contract-drift.links.json` |
 
 **Sample data:** everything shown comes from the fixture monorepo in `examples/shop-monorepo` (a tRPC-shaped
@@ -207,10 +228,8 @@ test/                 node:test suites (in-memory and committed Relate stores)
 
 ## Known limitations
 
-- Meaning comes only from explicit `@unit` / `@format` / `@tz` tags. Untagged fields are ignored; an
-  untagged read is shown as REVIEW, never guessed.
-- Value flow is followed one step: a read that is a direct argument of a call reaches that parameter.
-  Values stored in a variable first are reported as REVIEW.
+- Meaning comes only from explicit `@unit` / `@format` / `@tz` tags. Untagged counterparts are retained to detect metadata removal; an untagged read is REVIEW, never guessed.
+- Value flow follows up to eight immutable scalar aliases, renamed destructuring, and immutable callable aliases to directly tagged parameters. Arithmetic transforms and unresolved paths stay REVIEW; mutable writes, arbitrary wrappers and general interprocedural dataflow are outside the analysis.
 - Hidden links must be declared in `contract-drift.links.json`.
 - Only `@unit` changes are in the fixture; `@format` and `@tz` use the same code path but have no fixture case.
 - The analyzer accepts folders or the fixture’s saved comparisons against `base`. Check out git refs

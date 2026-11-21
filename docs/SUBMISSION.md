@@ -96,7 +96,7 @@ a PR comment, and exits 1 when it finds a MISMATCH.
   graph with `source: "manifest"`.
 
 ## What's next
-Following values through local variables (today a read stored in a variable first is reported as REVIEW),
+Broader interprocedural flow beyond the implemented bounded immutable aliases,
 checking out git refs directly, and a GitHub Action that posts the `--markdown` table on pull requests.
 
 ## Built with AI assistance
@@ -119,3 +119,9 @@ them. The product itself uses no AI: every finding comes from the graph. All out
 - [ ] Repo still public with topics `relate` and `relate-neo4j-hackathon`.
 - [ ] Fill the one `[[OWNER]]` line above.
 - [ ] Submit by Dec 9; the deadline is Dec 11, 6:00 PM PST.
+
+## Repair demo extension — verified 2026-11-21
+
+For a repair-focused take, choose the telemetry fixture in the viewer: broken has two MISMATCH consumers, partial has one MISMATCH and one OK, and fixed has zero MISMATCH and two OK. Compare fixed against broken to show two explicitly repaired paths, then download the Markdown comparison. The original meaning drift stays visible; disappeared evidence is not counted as repaired. The fixture and commands are in the README. Canonical module/namespace keys prevent duplicate-name collisions, and removed metadata raises REVIEW. Use this actual implemented behavior when replacing the older "what's next" copy above.
+
+Remaining owner steps are video/public demo publication, final tools wording, and submitting the entry. Scripted checks do not establish runtime correctness of arbitrary applications.
