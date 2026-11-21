@@ -19,3 +19,23 @@ Draft for the owner. Nothing here has been submitted. Rules checked on relate.de
 **Judging.** The overview page gives points: Relate & connected context 30, Functionality & completeness 25, Usefulness 20, Documentation & reproducibility 15, Creativity 10. The official rules (section 5) instead say five criteria are "weighted equally". The pages disagree; either way, Relate usage and "clone it, run it, it works" carry the most weight.
 
 Note: the README and SPEC call the video "1–2 min", so a 2–3 minute cut would break the rules here. The script is 1:50.
+
+## Video script (target 1:50, hard cap 2:00)
+
+Record at 1440×900, terminal font 18 px, captions burned in, no music. Every command below was run on 2026-11-21 and produced the output described.
+
+| Time | Screen | Voice-over |
+| --- | --- | --- |
+| 0:00–0:08 | Terminal: `npx tsc -p examples/shop-monorepo/snapshots/pr-duration-ms --noEmit` returns with no output. Caption: "TypeScript: green". | "This pull request type-checks. CI is green." |
+| 0:08–0:20 | Cut straight to `npm run analyze`. Zoom on row 2: `MISMATCH apps/worker/src/sla.ts:7 … via queue orders.completed`. | "And it will page on-call for every order that takes longer than seven seconds. This tool caught that in a service the PR never touched." |
+| 0:20–0:35 | Diff of `packages/contracts/src/order.ts` (`@unit seconds` → `@unit milliseconds`) and `routers/order.ts` (the `/ 1000` removed). | "The PR switches `duration` from seconds to milliseconds. It's still a `number`, so the compiler can't help. Grep finds hundreds of `duration`s." |
+| 0:35–0:55 | Back to the analyze output, rows 1–3, then rows 4–7. | "Contract Drift loads both snapshots into one Relate graph and finds the meaning change with a Cypher query. Then it walks variable-length paths to every place that reads the field: the web formatter that still expects seconds, the worker reached through a queue, and the tests to run, including three the PR didn't touch." |
+| 0:55–1:15 | `npm run viewer`, Review tab. Hover the worker entry; the dashed `LINKED_TO` path lights up. | "Each finding carries the file, the line and the exact path through the graph. The dashed edge is a hidden link: a queue between services that static analysis can't see, declared once in a manifest." |
+| 1:15–1:28 | `npm run analyze -- --head pr-weight-kg`. Point at the shortlist: shipping label only. | "Change an unrelated field and the worker stays off the list. It flags what the change reaches and nothing else." |
+| 1:28–1:45 | Viewer Cypher tab: run the "Tests not in diff" preset. Then the Store tab (file path, counts, fingerprint). | "The findings are written back to the graph, so you can ask your own questions in Cypher. Everything lives in one committed Relate file." |
+| 1:45–1:50 | Title card: "Contract Drift — same type, new meaning, caught in review." Repo URL. | "Clone it, run `npm run demo`, and you're looking at the same graph." |
+
+Recording notes:
+- Stop the viewer before any `npm run build:graph -- --force` (single-writer store). The demo itself never needs a rebuild.
+- Before filming, run `npm run demo` once from a fresh clone so the take matches what judges will see.
+- After recording, check the length is under 2:00 and upload as public or unlisted (viewable without login).
