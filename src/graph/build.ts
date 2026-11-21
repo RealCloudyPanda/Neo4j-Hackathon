@@ -5,6 +5,7 @@ import { extractSnapshot } from "../extract/index.ts";
 import { computeReview } from "../review/index.ts";
 import { openStore, ROOT, type Store } from "../relate/store.ts";
 import { applySchema } from "./schema.ts";
+import { CASE_CATALOG, SNAPSHOT_CATALOG } from './catalog.ts';
 import { loadSnapshot } from "./load.ts";
 
 export const FIXTURE_DIR = join(ROOT, "examples/shop-monorepo/snapshots");
@@ -32,7 +33,7 @@ function walk(dir: string, out: string[] = []): string[] {
  */
 export function fingerprint(): string {
   const h = createHash("sha1").update(`contract-drift@${TOOL_VERSION}\n`);
-  const files = [FIXTURE_DIR, join(ROOT, "queries"), join(ROOT, "src/extract"), join(ROOT, "src/graph"), join(ROOT, "src/review")]
+  const files = [join(ROOT, "examples"), join(ROOT, "queries"), join(ROOT, "src/extract"), join(ROOT, "src/graph"), join(ROOT, "src/review")]
     .flatMap((d) => walk(d))
     .map((p) => relative(ROOT, p).split(sep).join("/"))
     .sort();
@@ -59,7 +60,7 @@ export function readMeta(store: Store): { fingerprint: string; toolVersion: stri
 }
 
 /** Load snapshot folders into an open writable store and compute every head-vs-base review. */
-export function populate(store: Store, dirs: { id: string; dir: string }[], log: (s: string) => void = () => {}): void {
+export function populate(store: Store, dirs: { id: string; dir: string }[], log: (s: string) => void = () => {}, comparisons?: {base: string; head: string}[]): void {
   applySchema(store);
   for (const { id, dir } of dirs) {
     const t = Date.now();
@@ -68,9 +69,9 @@ export function populate(store: Store, dirs: { id: string; dir: string }[], log:
     log(`  loaded ${id.padEnd(16)} ${String(data.files.length).padStart(3)} files  ${String(data.fields.length).padStart(2)} contract fields  ${String(data.usages.length).padStart(2)} usages  (${Date.now() - t} ms)`);
   }
   const [base, ...heads] = dirs.map((d) => d.id);
-  for (const head of [base, ...heads]) {
-    const n = store.tx(() => computeReview(store, base, head));
-    log(`  reviewed ${base}..${head}: ${n} drift${n === 1 ? "" : "s"}`);
+  for (const pair of comparisons ?? [base, ...heads].map(head => ({base, head}))) {
+    const n = store.tx(() => computeReview(store, pair.base, pair.head));
+    log(`  reviewed ${pair.base}..${pair.head}: ${n} drift${n === 1 ? "" : "s"}`);
   }
 }
 
@@ -83,8 +84,8 @@ export function buildStore(target: string, log: (s: string) => void = () => {}):
   const scratch = join(dir, "store.rl");
   try {
     const store = openStore(scratch);
-    const ids = fixtureSnapshots();
-    populate(store, ids.map((id) => ({ id, dir: join(FIXTURE_DIR, id) })), log);
+    const ids = SNAPSHOT_CATALOG.map(s => s.id);
+    populate(store, SNAPSHOT_CATALOG, log, CASE_CATALOG);
     store.query("MERGE (m:Meta {key:'build'}) SET m.fingerprint = $fp, m.toolVersion = $v, m.snapshots = $s, m.builtAt = $at", {
       fp: fingerprint(),
       v: TOOL_VERSION,
