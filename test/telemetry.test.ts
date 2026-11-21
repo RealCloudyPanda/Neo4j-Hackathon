@@ -23,3 +23,15 @@ test('every telemetry snapshot typechecks independently', () => {
   assert.equal(result.status,0,result.stdout+result.stderr);
  }
 });
+
+test('repair comparison tracks partial and complete repairs without hiding original drift', async () => {
+ const { compareReviews, repairMarkdown } = await import('../src/review/compare.ts');
+ const broken = readReview(store,'telemetry-base','telemetry-broken');
+ const partial = readReview(store,'telemetry-base','telemetry-partial');
+ const fixed = readReview(store,'telemetry-base','telemetry-fixed');
+ assert.equal(compareReviews(broken,partial).resolved,1);
+ const repair = compareReviews(broken,fixed);
+ assert.equal(repair.resolved,2); assert.equal(repair.remaining,0);
+ assert.match(repairMarkdown(repair), /2 explicitly repaired/);
+ assert.equal(fixed.drifts.length,1);
+});
