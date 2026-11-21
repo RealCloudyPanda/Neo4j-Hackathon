@@ -13,7 +13,6 @@ export const SNAPSHOT_TITLES: Record<string, string> = {
   "pr-weight-kg": "PR: send parcel weight in kilograms",
 };
 
-/** Parse one snapshot folder into plain records. */
 export function extractSnapshot(dirIn: string, id = basename(dirIn)): SnapshotData {
   const dir = resolve(dirIn);
   const project = createProject(dir);

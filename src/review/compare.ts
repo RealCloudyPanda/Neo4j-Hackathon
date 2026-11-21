@@ -1,7 +1,6 @@
 import type { Review } from './read.ts';
 import type { Verdict } from './types.ts';
 
-/** Compare evidence at the same contract, tag and source occurrence across repair snapshots. Column identity is deliberately conservative. */
 export function compareReviews(before: Review, after: Review) {
   if (before.base !== after.base) throw new Error('Repair comparisons require the same base snapshot.');
   const flatten = (review: Review) => review.drifts.flatMap(d => d.entries.filter(e => e.verdict !== 'TEST').map(e => ({

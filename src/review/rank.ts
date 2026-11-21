@@ -2,7 +2,6 @@ import type { Entry, Verdict } from "./types.ts";
 
 const ORDER: Record<Verdict, number> = { MISMATCH: 0, REVIEW: 1, TEST: 2, OK: 3 };
 
-/** MISMATCH, REVIEW, TEST (not in diff first), OK; then fewer hops; then path. Assigns 1-based rank. */
 export function rankEntries(entries: Omit<Entry, "rank">[]): Entry[] {
   return [...entries]
     .sort(

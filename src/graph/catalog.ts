@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 import { ROOT } from '../relate/store.ts';
 
-/** Explicit authored cases: snapshot ids, roots and comparison pairs are independent. */
 export const SNAPSHOT_CATALOG = [
   { id: 'base', fixture: 'shop-monorepo', folder: 'base', title: 'Shop · base' },
   { id: 'pr-duration-ms', fixture: 'shop-monorepo', folder: 'pr-duration-ms', title: 'Shop · duration milliseconds' },

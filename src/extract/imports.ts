@@ -2,7 +2,6 @@ import type { Project } from "ts-morph";
 import { isInside, relPath } from "./project.ts";
 import type { ImportRec } from "./types.ts";
 
-/** Resolved import edges between files of the snapshot (relative and path-alias imports). */
 export function extractImports(project: Project, dir: string): ImportRec[] {
   const out: ImportRec[] = [];
   for (const sf of project.getSourceFiles()) {

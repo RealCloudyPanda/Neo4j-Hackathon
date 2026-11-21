@@ -1,4 +1,3 @@
-/** Plain records produced by the extractors and loaded into the graph. */
 export const MEANING_TAGS = ["unit", "format", "tz"] as const;
 export type MeaningTag = (typeof MEANING_TAGS)[number];
 export type Tags = Partial<Record<MeaningTag, string>>;

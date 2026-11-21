@@ -1,7 +1,6 @@
 import type { Params, Store } from "../relate/store.ts";
 import type { Entry } from "./types.ts";
 
-/** Persist shortlist entries as (:Drift)-[:FLAGS {rank, verdict, reason, hops, pathText}]->(Usage|File). */
 export function saveFlags(store: Store, driftId: string, entries: Omit<Entry, "rank">[] | Entry[]): void {
   if (!entries.length) return;
   store.query(

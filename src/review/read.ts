@@ -28,7 +28,6 @@ export interface Review {
   notAffected: { usages: number; fields: number };
 }
 
-/** Reader side: everything comes from saved Drift / FLAGS, so this works on a read-only store. */
 export function readReview(store: Store, base: string, head: string): Review {
   const drifts = store.query<Record<string, unknown>>(
     `MATCH (d:Drift {base: $base, head: $head})-[:AFTER]->(h:FieldVersion)

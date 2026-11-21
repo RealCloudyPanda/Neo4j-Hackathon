@@ -11,7 +11,6 @@ import { loadSnapshot } from "./load.ts";
 export const FIXTURE_DIR = join(ROOT, "examples/shop-monorepo/snapshots");
 export const TOOL_VERSION = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version as string;
 
-/** Snapshot folders of the fixture: base first, then heads in name order. */
 export function fixtureSnapshots(dir = FIXTURE_DIR): string[] {
   const all = readdirSync(dir).filter((n) => statSync(join(dir, n)).isDirectory());
   return ["base", ...all.filter((n) => n !== "base").sort()].filter((n) => all.includes(n));
@@ -27,10 +26,6 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-/**
- * Content fingerprint of everything that determines the store: fixture files, queries, and the analyzer
- * source. The .rl file is not byte-deterministic (RESEARCH gotcha 4), so we compare this instead of bytes.
- */
 export function fingerprint(): string {
   const h = createHash("sha1").update(`contract-drift@${TOOL_VERSION}\n`);
   const files = [join(ROOT, "examples"), join(ROOT, "queries"), join(ROOT, "src/extract"), join(ROOT, "src/graph"), join(ROOT, "src/review")]
@@ -38,7 +33,6 @@ export function fingerprint(): string {
     .map((p) => relative(ROOT, p).split(sep).join("/"))
     .sort();
   for (const f of files) {
-    // Normalise line endings so a Windows checkout gets the same fingerprint.
     const text = readFileSync(join(ROOT, f), "utf8").replace(/\r\n/g, "\n");
     h.update(`${f}\0${createHash("sha1").update(text).digest("hex")}\n`);
   }
@@ -60,7 +54,6 @@ export function readMeta(store: Store): { fingerprint: string; toolVersion: stri
   };
 }
 
-/** Load snapshot folders into an open writable store and compute every head-vs-base review. */
 export function populate(store: Store, dirs: { id: string; dir: string }[], log: (s: string) => void = () => {}, comparisons?: {base: string; head: string}[]): void {
   applySchema(store);
   for (const { id, dir } of dirs) {
@@ -76,7 +69,6 @@ export function populate(store: Store, dirs: { id: string; dir: string }[], log:
   }
 }
 
-/** Build the store at `target`: write a scratch file, checkpoint, then rename over the target. */
 export function buildStore(target: string, log: (s: string) => void = () => {}): void {
   const existing = lstatSync(target, { throwIfNoEntry: false });
   if (existing && !existing.isFile()) throw new Error(`Store target must be a regular file: ${target}`);

@@ -4,7 +4,6 @@ import type { DriftRow } from "./types.ts";
 
 export const driftId = (base: string, head: string, key: string, tag: string) => `${base}..${head}:${key}:${tag}`;
 
-/** Run drift.cypher and persist each meaning change as a Drift node with ON / BEFORE / AFTER. */
 export function detectDrifts(store: Store, base: string, head: string): DriftRow[] {
   markInDiff(store, base, head);
   const rows = store.query<Omit<DriftRow, "id">>(loadQuery("drift"), { base, head });

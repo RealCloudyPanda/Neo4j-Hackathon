@@ -1,4 +1,3 @@
-/** Refuse write clauses outside string literals and comments. The store is also opened read-only. */
 const WRITE = /\b(CREATE|MERGE|SET|DELETE|REMOVE|DROP|LOAD|FOREACH)\b/i;
 
 export function stripStrings(cypher: string): string {

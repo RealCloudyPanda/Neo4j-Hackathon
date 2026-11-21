@@ -1,13 +1,3 @@
-/**
- * The only place that touches @relate/relate directly.
- *
- * Relate gotchas this module designs around (docs/RESEARCH.md):
- *  - there is no Database.close(): a second open of the same file in one process fails, so each
- *    file path is opened at most once per process and the handle is cached;
- *  - one writer per store across processes: the builder writes and exits, everything else opens
- *    read-only;
- *  - lock and IO failures surface as an opaque "internal error", so we add a plain-English hint.
- */
 import { Database, RelateError, type Connection, type ParamValue, type Row } from "@relate/relate";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -26,7 +16,6 @@ export interface Store {
   conn: Connection;
   query<T extends Row = Row>(cypher: string, params?: Params): T[];
   queryAsync<T extends Row = Row>(cypher: string, params?: Params): Promise<T[]>;
-  /** Run fn inside one explicit transaction (commit on success, rollback on throw). */
   tx<T>(fn: () => T): T;
 }
 
@@ -87,7 +76,6 @@ export function openStore(path: string, opts: { readOnly?: boolean } = {}): Stor
         try {
           conn.rollback();
         } catch {
-          /* already failed */
         }
         throw err;
       }
@@ -108,7 +96,6 @@ function wrapOpenError(err: unknown, path: string): StoreError {
   );
 }
 
-/** Format any error for the terminal, with the hint and Relate code when present. */
 export function describeError(err: unknown): string {
   if (err instanceof StoreError) {
     return [err.message, err.hint ? `hint: ${err.hint}` : "", err.code ? `code: ${err.code}` : ""]
@@ -121,7 +108,6 @@ export function describeError(err: unknown): string {
 
 const queryCache = new Map<string, string>();
 
-/** Load a query from queries/<name>.cypher (comments kept; Relate accepts // comments). */
 export function loadQuery(name: string): string {
   let text = queryCache.get(name);
   if (text === undefined) {

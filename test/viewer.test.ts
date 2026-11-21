@@ -8,7 +8,6 @@ test("viewer routes expose the committed duration review and its evidence", asyn
   const { app, storeError } = createApp();
   assert.equal(storeError, null);
 
-  // Exercise Express routing without relying on a free port.
   async function get(url: string) {
     const req = new IncomingMessage(new Socket());
     req.url = url;

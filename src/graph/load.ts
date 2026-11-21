@@ -10,7 +10,6 @@ const tagProps = (t: { unit?: string; format?: string; tz?: string }) => ({
 export const fileId = (snap: string, path: string) => `${snap}:${path}`;
 export const fvId = (snap: string, key: string) => `${snap}:${key}`;
 
-/** Load one snapshot with UNWIND batches, one batch per label and per relationship type, in one transaction. */
 export function loadSnapshot(store: Store, s: SnapshotData): void {
   const snap = s.id;
   const testPaths = new Set(s.files.filter((f) => f.isTest).map((f) => f.path));
@@ -150,9 +149,6 @@ export function loadSnapshot(store: Store, s: SnapshotData): void {
   });
 }
 
-/**
- * Mark head files that differ from base, in Cypher: same path with a different hash, or missing in base.
- */
 export function markInDiff(store: Store, base: string, head: string): void {
   store.query(
     `MATCH (:Snapshot {id:$head})-[:CONTAINS]->(h:File)

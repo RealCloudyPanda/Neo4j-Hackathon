@@ -4,7 +4,6 @@ import { buildStore, fingerprint, readMeta } from "../graph/build.ts";
 import { DEFAULT_STORE, describeError, openStore, ROOT } from "../relate/store.ts";
 import { parseArgs } from "./args.ts";
 
-/** Writer process: rebuild data/contract-drift.rl only when the fixture or analyzer changed, then exit. */
 export async function runBuild(argv: string[]): Promise<number> {
   const { flags } = parseArgs(argv, ["force"]);
   const target = typeof flags.store === "string" ? flags.store : DEFAULT_STORE;

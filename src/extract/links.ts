@@ -6,10 +6,6 @@ export const LINKS_FILE = "contract-drift.links.json";
 
 export class LinkManifestError extends Error {}
 
-/**
- * Read the optional link manifest: hidden links (queue, other service) that static analysis cannot see.
- * Unknown field keys are an error with file and index, so a typo never silently drops a link.
- */
 export function readLinks(dir: string, knownKeys: Set<string>): LinkRec[] {
   const file = join(dir, LINKS_FILE);
   if (!existsSync(file)) return [];

@@ -1,4 +1,3 @@
-/** Tiny flag parser: --key value, --flag, and positional args. */
 export function parseArgs(argv: string[], booleans: string[] = []): { flags: Record<string, string | boolean>; positional: string[] } {
   const flags: Record<string, string | boolean> = {};
   const positional: string[] = [];

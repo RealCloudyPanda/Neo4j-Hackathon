@@ -14,10 +14,6 @@ const isDir = (p: string) => existsSync(p) && statSync(p).isDirectory();
 
 export const QUERIES_USED = ["drift", "impact", "tests"];
 
-/**
- * Reader process. Snapshot names are read from the committed store (read-only). Two folders are
- * analyzed in a fresh store (in memory, or --store <file> if given), so any two checkouts work.
- */
 export async function runAnalyze(argv: string[]): Promise<number> {
   const { flags } = parseArgs(argv, ["json", "markdown", "no-color", "show-cypher"]);
   const selected = CASE_CATALOG.find(c => c.head === String(flags.case ?? flags.head ?? 'pr-duration-ms'));

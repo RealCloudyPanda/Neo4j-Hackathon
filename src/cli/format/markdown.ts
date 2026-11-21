@@ -3,7 +3,6 @@ import type { Review } from "../../review/read.ts";
 const ICON = { MISMATCH: "**MISMATCH**", REVIEW: "REVIEW", OK: "OK", TEST: "TEST" } as const;
 const esc = (s: string) => s.replace(/\|/g, "\\|");
 
-/** A PR comment: one table per drift, impact paths folded in <details>. */
 export function formatMarkdown(r: Review): string {
   const out: string[] = [`### Contract Drift: \`${r.base}\` → \`${r.head}\``, ""];
   if (!r.drifts.length) return [...out, "No meaning changes. Nothing to review."].join("\n");

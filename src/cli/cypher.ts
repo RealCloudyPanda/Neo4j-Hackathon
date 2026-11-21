@@ -37,7 +37,6 @@ export function table(columns: string[], rows: Record<string, unknown>[]): strin
   return [line(columns), widths.map((w) => "─".repeat(w)).join("  "), ...cells.map(line)].join("\n");
 }
 
-/** Read-only Cypher against the committed store. */
 export async function runCypher(argv: string[]): Promise<number> {
   const { flags, positional } = parseArgs(argv, ["list-presets"]);
   if (flags["list-presets"]) {

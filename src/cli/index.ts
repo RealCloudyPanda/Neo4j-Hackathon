@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-/**
- * contract-drift CLI entry. Subcommands are loaded lazily so `--help` stays instant.
- */
 export const HELP = `Contract Drift: catch the PR that passes TypeScript but changes what an API field means.
 
 Usage
@@ -52,7 +49,6 @@ async function main(argv: string[]): Promise<number> {
 
 main(process.argv.slice(2)).then(
   (code) => {
-    // The viewer keeps the process alive; everything else exits with its code.
     if (code >= 0) process.exitCode = code;
   },
   (err: unknown) => {

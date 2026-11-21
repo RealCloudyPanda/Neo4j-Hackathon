@@ -1,4 +1,3 @@
-// Contract Drift viewer. Plain ES module; Cytoscape is loaded as a global from node_modules.
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
@@ -17,7 +16,6 @@ async function api(path, opts) {
   return body;
 }
 
-/* ---------- graph ---------- */
 const graphStyle = [
   { selector: "node", style: {
     "font-family": "IBM Plex Mono, monospace", "font-size": 15, color: C.ink2, label: "data(label)",
@@ -77,7 +75,6 @@ function highlight(ids) {
   });
 }
 
-/* ---------- review ---------- */
 function renderRail() {
   $("#prs").innerHTML = state.reviews.map((r, i) => {
     const total = r.drifts.length;
@@ -246,7 +243,6 @@ function selectReview(i) {
   selectDrift(first);
 }
 
-/* ---------- cypher ---------- */
 let presets = [];
 async function initCypher() {
   presets = await api("/api/presets");
@@ -286,7 +282,6 @@ async function runQuery() {
   }
 }
 
-/* ---------- store ---------- */
 async function renderStore() {
   const s = await api("/api/store");
   const kb = (s.sizeBytes / 1024).toFixed(0);
@@ -314,7 +309,6 @@ async function renderStore() {
       <pre>${esc(s.relateCli)}</pre></div>`;
 }
 
-/* ---------- tabs and keys ---------- */
 const loaded = { cypher: false, store: false };
 async function showView(name) {
   document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === name)));
@@ -363,7 +357,6 @@ async function main() {
   try {
     const { reviews } = await api("/api/reviews");
     state.reviews = reviews;
-    // Deep links for demos and screenshots: ?pr=<head>&entry=<rank>
     const q = new URLSearchParams(location.search);
     const pr = Math.max(0, reviews.findIndex((r) => r.head === q.get("pr")));
     const review = reviews[pr];

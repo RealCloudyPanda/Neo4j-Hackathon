@@ -2,7 +2,6 @@ import { Node, SyntaxKind, type JSDocableNode, type Project, type PropertySignat
 import { isInside, relPath } from "./project.ts";
 import { MEANING_TAGS, type FieldVersionRec, type MeaningTag, type Tags } from "./types.ts";
 
-/** Read @unit / @format / @tz from JSDoc blocks. Only explicit tags count (ADR 0002). */
 export function tagsFromJsDoc(node: JSDocableNode): Tags {
   const tags: Tags = {};
   for (const doc of node.getJsDocs()) {
@@ -16,7 +15,6 @@ export function tagsFromJsDoc(node: JSDocableNode): Tags {
   return tags;
 }
 
-/** Read tags from an inline comment such as `/** @unit seconds *\/ seconds: number`. */
 export function tagsFromText(text: string): Tags {
   const tags: Tags = {};
   for (const t of MEANING_TAGS) {
@@ -28,7 +26,6 @@ export function tagsFromText(text: string): Tags {
 
 export const hasTags = (t: Tags): boolean => MEANING_TAGS.some((k) => t[k] !== undefined);
 
-/** Owner name of a property signature: interface name or type-alias name. */
 export function ownerName(prop: PropertySignature): string | undefined {
   const parent = prop.getParent();
   if (Node.isInterfaceDeclaration(parent)) return parent.getName();
@@ -44,7 +41,6 @@ export interface FieldDecl {
   node: PropertySignature;
 }
 
-/** Every interface / type-literal property carrying a meaning tag is a contract field. */
 export function extractFields(project: Project, dir: string): FieldDecl[] {
   const out: FieldDecl[] = [];
   for (const sf of project.getSourceFiles()) {

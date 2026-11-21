@@ -10,7 +10,6 @@ export interface DriftRow {
   headId: string;
 }
 
-/** One shortlist entry. `targetId` is the Usage or File the Drift FLAGS. */
 export interface Entry {
   targetId: string;
   verdict: Verdict;
@@ -23,6 +22,5 @@ export interface Entry {
   pathText: string;
   inDiff: boolean;
   rank: number;
-  /** For TEST entries: the files this test reaches through imports. */
   reaches?: string[];
 }

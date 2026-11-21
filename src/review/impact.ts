@@ -25,7 +25,6 @@ export function pathText(rels: string[]): string {
   return ["FieldVersion", ...rels.map((r) => `─${r}→ ${NEXT[r] ?? "?"}`)].join(" ");
 }
 
-/** Verdict rules from SPEC §3: compare the tag stated on the path with the drift's before / after. */
 export function judge(d: DriftRow, r: ImpactRow): { verdict: Verdict; reason: string; detail: string | null } {
   const at = `@${d.tag}`;
   if (r.flowNote) return { verdict: 'REVIEW', reason: r.flowNote, detail: null };
@@ -46,7 +45,6 @@ export function judge(d: DriftRow, r: ImpactRow): { verdict: Verdict; reason: st
   return { verdict: "REVIEW", reason: "reads the field; no meaning tag on the way, check by hand", detail: null };
 }
 
-/** Run impact.cypher for one drift and turn each row into a shortlist entry. */
 export function impactEntries(store: Store, d: DriftRow): Omit<Entry, "rank">[] {
   const rows = store.query<ImpactRow & Record<string, unknown>>(loadQuery("impact"), { headId: d.headId, tag: d.tag });
   const inDiff = new Map(

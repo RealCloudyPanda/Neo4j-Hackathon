@@ -1,7 +1,3 @@
-/**
- * Viewer: Express over the committed store, opened read-only once at start (Relate has no close()
- * and allows no reader while a writer holds the file, so the viewer never writes).
- */
 import express, { type Request, type Response } from "express";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
@@ -65,7 +61,6 @@ export function relEl(r: RelationshipValue): El {
   };
 }
 
-/** Subgraph for one drift, plus for each shortlist target the element ids on its impact path. */
 export function driftGraph(store: Store, id: string) {
   const els = new Map<string, El>();
   const highlight: Record<string, string[]> = {};

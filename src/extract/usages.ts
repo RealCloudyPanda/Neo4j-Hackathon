@@ -14,11 +14,6 @@ import type { FunctionRec, ParamRec, ProducerRec, Tags, UsageRec } from "./types
 
 const lineText = (sf: SourceFile, line: number): string => (sf.getFullText().split("\n")[line - 1] ?? "").trim();
 
-/**
- * Walk every reference of every contract field and classify it by its parent node:
- * object-literal property → Producer (writes the field); property access / destructure → Usage (reads it).
- * A read that is a *direct* argument of a call is followed to the callee's parameter (RESEARCH §2).
- */
 export function extractUsages(fields: FieldDecl[], dir: string): { producers: ProducerRec[]; usages: UsageRec[] } {
   const producers: ProducerRec[] = [];
   const usages: UsageRec[] = [];
@@ -72,7 +67,6 @@ export function extractUsages(fields: FieldDecl[], dir: string): { producers: Pr
   return { producers: producers.sort(order), usages: usages.sort(order) };
 }
 
-/** Follow at most eight immutable scalar aliases. Never infer arithmetic or mutable writes. */
 function followAliases(value: Node, dir: string, depth = 0, seen = new Set<string>()): { node: Expression; flow?: NonNullable<UsageRec['passesTo']>; note?: string }[] {
   if (depth >= 8) return [];
   const id = `${value.getSourceFile().getFilePath()}:${value.getStart()}`;
@@ -83,8 +77,6 @@ function followAliases(value: Node, dir: string, depth = 0, seen = new Set<strin
     if (flow) return [{ node: value, flow }];
   }
   const parent = value.getParent();
-  // Shorthand destructuring references can include references to the contract property itself.
-  // Those are independent field reads, not uses of this local scalar alias.
   if (depth > 0 && parent && (
     (Node.isPropertyAccessExpression(parent) && parent.getNameNode() === value) ||
     (Node.isPropertyAssignment(parent) && parent.getNameNode() === value) ||
@@ -104,7 +96,6 @@ function followAliases(value: Node, dir: string, depth = 0, seen = new Set<strin
   return alias.findReferencesAsNodes().filter(r => isInside(dir, r.getSourceFile())).flatMap(ref => followAliases(ref, dir, depth + 1, visited));
 }
 
-/** `fn(order.duration)` → the parameter of fn that receives the value, with its meaning tags. */
 function followIntoCall(read: Expression, dir: string): UsageRec["passesTo"] | undefined {
   const call = read.getParent();
   if (!call || !Node.isCallExpression(call)) return undefined;
@@ -146,9 +137,7 @@ function followIntoCall(read: Expression, dir: string): UsageRec["passesTo"] | u
   return { fn, param, argIndex };
 }
 
-/** Tags from the parameter's own leading comment, or from `@param name @unit x` style JSDoc on the function. */
 function paramTags(p: ParameterDeclaration, fnNode: Node): Tags {
-  // Leading trivia of the parameter holds `/** @unit seconds */` (ts-morph does not expose it as JSDoc).
   const own = p.getFullText().slice(0, p.getStart() - p.getPos());
   const tags = tagsFromText(own);
   if (Object.keys(tags).length) return tags;
@@ -162,7 +151,6 @@ function paramTags(p: ParameterDeclaration, fnNode: Node): Tags {
   return {};
 }
 
-/** Name a producer: `order.summary` when the enclosing function is wired into a router, else the function name. */
 function producerName(prop: Node): string {
   const fn = prop.getFirstAncestor(
     (a) => Node.isFunctionDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a) || Node.isMethodDeclaration(a),

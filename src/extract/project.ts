@@ -2,7 +2,6 @@ import { existsSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { Project, type SourceFile } from "ts-morph";
 
-/** One ts-morph Project per snapshot, using the snapshot's own tsconfig (path aliases included). */
 export function createProject(dir: string): Project {
   const tsConfigFilePath = join(dir, "tsconfig.json");
   if (existsSync(tsConfigFilePath)) return new Project({ tsConfigFilePath });
@@ -11,7 +10,6 @@ export function createProject(dir: string): Project {
   return project;
 }
 
-/** Snapshot-relative POSIX path of a source file. */
 export function relPath(dir: string, sf: SourceFile | string): string {
   const abs = typeof sf === "string" ? sf : sf.getFilePath();
   return relative(dir, abs).split(sep).join("/");

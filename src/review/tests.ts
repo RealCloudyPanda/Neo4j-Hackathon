@@ -9,7 +9,6 @@ interface TestRow {
   reaches: string[];
 }
 
-/** Tests that reach flagged usages through imports, plus tests that read the field themselves. */
 export function testEntries(store: Store, d: DriftRow, head: string): Omit<Entry, "rank">[] {
   const byPath = new Map<string, TestRow>();
   const rows = [
