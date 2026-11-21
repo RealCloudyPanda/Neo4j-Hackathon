@@ -53,6 +53,7 @@ export interface UsageRec {
   col: number;
   kind: "read" | "destructure";
   code: string;
+  flowNote?: string;
   passesTo?: { fn: FunctionRec; param: ParamRec; argIndex: number };
 }
 

@@ -1,6 +1,7 @@
 import {
   Node,
   SyntaxKind,
+  VariableDeclarationKind,
   type CallExpression,
   type Expression,
   type ParameterDeclaration,
@@ -50,16 +51,45 @@ export function extractUsages(fields: FieldDecl[], dir: string): { producers: Pr
       else continue;
 
       const usage: UsageRec = { key: rec.key, path, line, col, kind, code: lineText(sf, line) };
-      if (read) {
-        const flow = followIntoCall(read, dir);
-        if (flow) usage.passesTo = flow;
+      const value = read ?? (Node.isBindingElement(parent) ? parent.getNameNode() : undefined);
+      const flows = value ? followAliases(value, dir) : [];
+      if (flows.length) {
+        for (const flow of flows) {
+          const at = flow.node;
+          const sinkLine = at.getStartLineNumber();
+          const sinkCol = at.getStart() - sf.compilerNode.getLineStarts()[sinkLine - 1] + 1;
+          usages.push({ ...usage, line: sinkLine, col: sinkCol, code: lineText(sf, sinkLine), passesTo: flow.flow });
+        }
+        continue;
       }
+      if (read && Node.isBinaryExpression(read.getParent())) usage.flowNote = 'value participates in a transform; verify conversion by hand';
       usages.push(usage);
     }
   }
   const order = (a: { path: string; line: number }, b: { path: string; line: number }) =>
     a.path.localeCompare(b.path) || a.line - b.line;
   return { producers: producers.sort(order), usages: usages.sort(order) };
+}
+
+/** Follow at most eight immutable scalar aliases. Never infer arithmetic or mutable writes. */
+function followAliases(value: Node, dir: string, depth = 0, seen = new Set<string>()): { node: Expression; flow: NonNullable<UsageRec['passesTo']> }[] {
+  if (depth >= 8) return [];
+  const id = `${value.getSourceFile().getFilePath()}:${value.getStart()}`;
+  if (seen.has(id)) return [];
+  const visited = new Set(seen).add(id);
+  if (Node.isExpression(value)) {
+    const flow = followIntoCall(value, dir);
+    if (flow) return [{ node: value, flow }];
+  }
+  const parent = value.getParent();
+  let alias: Node | undefined;
+  if (parent && Node.isVariableDeclaration(parent) && parent.getInitializer() === value && parent.getVariableStatement()?.getDeclarationKind() === VariableDeclarationKind.Const) alias = parent.getNameNode();
+  else if (parent && Node.isBindingElement(parent) && parent.getNameNode() === value && !parent.getInitializer()) {
+    const declaration = parent.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+    if (declaration?.getVariableStatement()?.getDeclarationKind() === VariableDeclarationKind.Const) alias = value;
+  }
+  if (!alias || !Node.isIdentifier(alias)) return [];
+  return alias.findReferencesAsNodes().filter(r => isInside(dir, r.getSourceFile())).flatMap(ref => followAliases(ref, dir, depth + 1, visited));
 }
 
 /** `fn(order.duration)` → the parameter of fn that receives the value, with its meaning tags. */
@@ -71,6 +101,14 @@ function followIntoCall(read: Expression, dir: string): UsageRec["passesTo"] | u
 
   let symbol = call.getExpression().getSymbol();
   if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol() ?? symbol;
+  for (let depth = 0; depth < 8; depth++) {
+    const candidate = symbol?.getDeclarations()[0];
+    if (!candidate || !Node.isVariableDeclaration(candidate) || candidate.getVariableStatement()?.getDeclarationKind() !== VariableDeclarationKind.Const) break;
+    const init = candidate.getInitializer();
+    if (!init || !Node.isIdentifier(init)) break;
+    symbol = init.getSymbol();
+    if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol() ?? symbol;
+  }
   const decl = symbol?.getDeclarations().find((d) => Node.isFunctionDeclaration(d) || Node.isVariableDeclaration(d) || Node.isMethodDeclaration(d));
   if (!decl) return undefined;
   let fnNode: Node = decl;
