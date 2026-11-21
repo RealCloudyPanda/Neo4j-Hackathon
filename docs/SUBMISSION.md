@@ -39,3 +39,11 @@ Recording notes:
 - Stop the viewer before any `npm run build:graph -- --force` (single-writer store). The demo itself never needs a rebuild.
 - Before filming, run `npm run demo` once from a fresh clone so the take matches what judges will see.
 - After recording, check the length is under 2:00 and upload as public or unlisted (viewable without login).
+
+## Devpost text
+
+**Project name:** Contract Drift
+
+**Elevator pitch** (≤200 chars):
+
+> Catch the PR that passes TypeScript but changes what an API field means. One Relate graph turns a unit change into a ranked shortlist of the code and tests it reaches.
