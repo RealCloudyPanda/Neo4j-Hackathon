@@ -26,9 +26,9 @@ function shortLabel(n: NodeValue): string {
   const p = n.properties;
   switch (n.labels[0]) {
     case "Drift":
-      return `${p.key}\n@${p.tag} ${p.before} → ${p.after}`;
+      return `${p.displayName ?? String(p.key).split("#").pop()}\n@${p.tag} ${p.before} → ${p.after}`;
     case "FieldVersion":
-      return `${p.key}\n${p.unit ? `@unit ${p.unit}` : p.format ? `@format ${p.format}` : ""}`;
+      return `${p.displayName ?? String(p.key).split("#").pop()}\n${p.unit ? `@unit ${p.unit}` : p.format ? `@format ${p.format}` : ""}`;
     case "Usage":
       return `${String(p.path).split("/").pop()}:${p.line}`;
     case "Param":
@@ -199,7 +199,7 @@ export function createApp(storePath = DEFAULT_STORE) {
         head,
         title: SNAPSHOT_TITLES[head] ?? head,
         counts: r.counts,
-        drifts: r.drifts.map((d) => ({ id: d.id, key: d.key, tag: d.tag, before: d.before, after: d.after })),
+        drifts: r.drifts.map((d) => ({ id: d.id, key: d.key, displayName: d.displayName, tag: d.tag, before: d.before, after: d.after })),
       };
     });
     res.json({ reviews, queries: Object.fromEntries(QUERIES_USED.map((q) => [q, loadQuery(q)])) });

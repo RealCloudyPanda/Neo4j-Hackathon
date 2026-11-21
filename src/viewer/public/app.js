@@ -92,7 +92,7 @@ function renderRail() {
   const drifts = state.review?.drifts ?? [];
   $("#drifts").innerHTML = drifts.length
     ? drifts.map((d) => `<li><button data-drift="${esc(d.id)}" aria-current="${d.id === state.driftId}">
-        <span class="drift-key">${esc(d.key)}</span>
+        <span class="drift-key">${esc(d.displayName ?? d.key)}</span>
         <span class="change">@${esc(d.tag)} <span class="from">${esc(d.before)}</span> → <span class="to">${esc(d.after)}</span></span>
       </button></li>`).join("")
     : `<li class="empty-rail">No meaning changes.</li>`;
@@ -139,8 +139,8 @@ function renderHead() {
   }
   const prod = d.producers.map((p) => `<span>produced by <code>${esc(p.name)}</code> ${esc(p.path)}:${p.line}${p.inDiff ? " (in diff)" : ""}</span>`).join("");
   $("#drift-head").innerHTML = `
-    <h1><code>${esc(d.key)}</code><span class="change">@${esc(d.tag)} <span class="from">${esc(d.before)}</span> → <span class="to">${esc(d.after)}</span></span></h1>
-    <div class="meta"><span>declared <code>${esc(d.declared.path)}:${d.declared.line}</code></span>${prod}<span>${esc(state.data.base)} → ${esc(state.data.head)}</span></div>`;
+    <h1><code>${esc(d.displayName ?? d.key)}</code><span class="change">@${esc(d.tag)} <span class="from">${esc(d.before)}</span> → <span class="to">${esc(d.after)}</span></span></h1>
+    <div class="meta"><span title="${esc(d.key)}">declared <code>${esc(d.declared.path)}:${d.declared.line}</code></span>${prod}<span>${esc(state.data.base)} → ${esc(state.data.head)}</span></div>`;
 }
 
 async function showEvidence(e) {

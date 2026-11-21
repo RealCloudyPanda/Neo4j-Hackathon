@@ -11,6 +11,7 @@ export interface ProducerInfo {
 export interface DriftReport {
   id: string;
   key: string;
+  displayName: string;
   tag: string;
   before: string;
   after: string;
@@ -73,6 +74,7 @@ export function readReview(store: Store, base: string, head: string): Review {
     return {
       id: String(d.id),
       key: String(d.key),
+      displayName: String(d.key).split("#").pop()!,
       tag: String(d.tag),
       before: String(d.before),
       after: String(d.after),

@@ -24,7 +24,7 @@ export function formatText(r: Review, o: TextOptions): string {
     return out.join("\n");
   }
   for (const d of r.drifts) {
-    out.push(`${s(["bold", "red"], "DRIFT")}  ${s("bold", d.key)}   @${d.tag} ${d.before} → ${s("bold", d.after)}`);
+    out.push(`${s(["bold", "red"], "DRIFT")}  ${s("bold", d.displayName)}   @${d.tag} ${d.before} → ${s("bold", d.after)}`);
     out.push(`       ${s("dim", "declared")}   ${d.declared.path}:${d.declared.line}`);
     for (const p of d.producers) {
       out.push(`       ${s("dim", "produced")}   ${p.name}  ${p.path}:${p.line}${p.inDiff ? s("dim", "   (in diff)") : ""}`);
