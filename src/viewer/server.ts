@@ -12,6 +12,8 @@ import { QUERIES_USED } from "../cli/analyze.ts";
 import { readMeta } from "../graph/build.ts";
 import { DEFAULT_STORE, describeError, loadQuery, openStore, ROOT, type Store } from "../relate/store.ts";
 import { writeClause } from "../relate/guard.ts";
+import { compareReviews, repairMarkdown } from '../review/compare.ts';
+import { formatMarkdown } from '../cli/format/markdown.ts';
 import { readReview } from "../review/read.ts";
 import { snapshotDirectory } from '../graph/catalog.ts';
 import { SNAPSHOT_TITLES } from "../extract/index.ts";
@@ -205,6 +207,30 @@ export function createApp(storePath = DEFAULT_STORE) {
       };
     });
     res.json({ reviews, queries: Object.fromEntries(QUERIES_USED.map((q) => [q, loadQuery(q)])) });
+  });
+
+  app.get('/api/repair', (req, res) => {
+    const s = need(res); if (!s) return;
+    const base = String(req.query.base ?? '');
+    const before = String(req.query.before ?? ''); const after = String(req.query.after ?? '');
+    const pairs = readMeta(s)?.comparisons ?? [];
+    if (![before, after].every(head => pairs.some(c => c.base === base && c.head === head))) {
+      res.status(404).json({error:'Unknown comparison pair. Select two cases sharing the same base.'}); return;
+    }
+    const repair = compareReviews(readReview(s,base,before), readReview(s,base,after));
+    if (req.query.format === 'markdown') res.type('text/markdown').send(repairMarkdown(repair));
+    else res.json(repair);
+  });
+
+  app.get('/api/export/:base/:head', (req, res) => {
+    const s = need(res); if (!s) return;
+    const base = String(req.params.base), head = String(req.params.head);
+    if (!readMeta(s)?.comparisons.some(c => c.base === base && c.head === head)) {
+      res.status(404).json({error:'Unknown comparison pair.'}); return;
+    }
+    const review = readReview(s,base,head);
+    if (req.query.format === 'json') res.json(review);
+    else res.type('text/markdown').send(formatMarkdown(review));
   });
 
   app.get("/api/review/:base/:head", (req, res) => {
