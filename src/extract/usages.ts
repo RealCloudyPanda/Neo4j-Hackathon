@@ -56,9 +56,10 @@ export function extractUsages(fields: FieldDecl[], dir: string): { producers: Pr
       if (flows.length) {
         for (const flow of flows) {
           const at = flow.node;
+          const sinkFile = at.getSourceFile();
           const sinkLine = at.getStartLineNumber();
-          const sinkCol = at.getStart() - sf.compilerNode.getLineStarts()[sinkLine - 1] + 1;
-          usages.push({ ...usage, line: sinkLine, col: sinkCol, code: lineText(sf, sinkLine), passesTo: flow.flow });
+          const sinkCol = at.getStart() - sinkFile.compilerNode.getLineStarts()[sinkLine - 1] + 1;
+          usages.push({ ...usage, path: relPath(dir, sinkFile), line: sinkLine, col: sinkCol, code: lineText(sinkFile, sinkLine), passesTo: flow.flow, flowNote: flow.note });
         }
         continue;
       }
@@ -72,7 +73,7 @@ export function extractUsages(fields: FieldDecl[], dir: string): { producers: Pr
 }
 
 /** Follow at most eight immutable scalar aliases. Never infer arithmetic or mutable writes. */
-function followAliases(value: Node, dir: string, depth = 0, seen = new Set<string>()): { node: Expression; flow: NonNullable<UsageRec['passesTo']> }[] {
+function followAliases(value: Node, dir: string, depth = 0, seen = new Set<string>()): { node: Expression; flow?: NonNullable<UsageRec['passesTo']>; note?: string }[] {
   if (depth >= 8) return [];
   const id = `${value.getSourceFile().getFilePath()}:${value.getStart()}`;
   if (seen.has(id)) return [];
@@ -82,13 +83,24 @@ function followAliases(value: Node, dir: string, depth = 0, seen = new Set<strin
     if (flow) return [{ node: value, flow }];
   }
   const parent = value.getParent();
+  // Shorthand destructuring references can include references to the contract property itself.
+  // Those are independent field reads, not uses of this local scalar alias.
+  if (depth > 0 && parent && (
+    (Node.isPropertyAccessExpression(parent) && parent.getNameNode() === value) ||
+    (Node.isPropertyAssignment(parent) && parent.getNameNode() === value) ||
+    Node.isImportSpecifier(parent) || Node.isImportClause(parent) || Node.isExportSpecifier(parent)
+  )) return [];
   let alias: Node | undefined;
   if (parent && Node.isVariableDeclaration(parent) && parent.getInitializer() === value && parent.getVariableStatement()?.getDeclarationKind() === VariableDeclarationKind.Const) alias = parent.getNameNode();
   else if (parent && Node.isBindingElement(parent) && parent.getNameNode() === value && !parent.getInitializer()) {
     const declaration = parent.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
     if (declaration?.getVariableStatement()?.getDeclarationKind() === VariableDeclarationKind.Const) alias = value;
   }
-  if (!alias || !Node.isIdentifier(alias)) return [];
+  if (!alias || !Node.isIdentifier(alias)) {
+    if (parent && Node.isBinaryExpression(parent) && ['+', '-', '*', '/', '%', '**', '<<', '>>', '>>>', '&', '|', '^'].includes(parent.getOperatorToken().getText()) && Node.isExpression(value)) return [{node:value, note:'value participates in a transform; verify conversion by hand'}];
+    if (depth > 0 && Node.isExpression(value)) return [{node:value, note:'unresolved value flow; verify by hand'}];
+    return [];
+  }
   return alias.findReferencesAsNodes().filter(r => isInside(dir, r.getSourceFile())).flatMap(ref => followAliases(ref, dir, depth + 1, visited));
 }
 

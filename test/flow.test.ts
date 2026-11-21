@@ -33,3 +33,25 @@ test('alias traversal has a fixed depth bound', () => {
 test('comparisons preserve field reads without claiming arithmetic conversion', () => {
  assert.equal(usages('return e.duration > 5;')[0].flowNote, undefined);
 });
+
+test('alias fan-out preserves uncertain transforms alongside direct tagged sinks', () => {
+ const rows = usages('const a = e.duration; imported(a); return imported(a / 1000);');
+ assert.ok(rows.some(r => r.passesTo?.param.unit === 'seconds'));
+ assert.ok(rows.some(r => r.flowNote?.includes('transform')));
+});
+
+
+test('exported immutable aliases retain the sink file and source coordinates', () => {
+ const project = new Project({ useInMemoryFileSystem: true });
+ project.createSourceFile('/flow/main.ts', `interface Event { /** @unit seconds */ duration: number }
+ declare const event: Event;
+ export const elapsed = event.duration;`);
+ project.createSourceFile('/flow/consumer.ts', `import { elapsed } from './main';
+ console.log(elapsed);`);
+ const rows = extractUsages(extractFields(project, '/flow'), '/flow').usages;
+ const sink = rows.find(r => r.path === 'consumer.ts');
+ assert.ok(sink);
+ assert.equal(sink.line, 2);
+ assert.ok(Number.isFinite(sink.col));
+ assert.equal(sink.code, 'console.log(elapsed);');
+});
