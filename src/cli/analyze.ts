@@ -2,6 +2,7 @@ import { closeSync, existsSync, openSync, rmSync, statSync } from "node:fs";
 import { basename, relative, resolve } from "node:path";
 import { populate, readMeta, TOOL_VERSION } from "../graph/build.ts";
 import { DEFAULT_STORE, describeError, loadQuery, openStore, ROOT, type Store } from "../relate/store.ts";
+import { compareReviews, repairMarkdown } from '../review/compare.ts';
 import { readReview } from "../review/read.ts";
 import { CASE_CATALOG } from '../graph/catalog.ts';
 import { parseArgs } from "./args.ts";
@@ -85,6 +86,15 @@ export async function runAnalyze(argv: string[]): Promise<number> {
   }
 
   const review = readReview(store, base, head);
+  if (typeof flags['repair-from'] === 'string') {
+    const previous = flags['repair-from'];
+    if (!readMeta(store)?.comparisons.some(c => c.base === base && c.head === previous)) {
+      console.error(`No saved comparison ${base}..${previous} for repair comparison.`); return 2;
+    }
+    const repair = compareReviews(readReview(store, base, previous), review);
+    process.stdout.write((flags.json ? JSON.stringify(repair, null, 2) : repairMarkdown(repair)) + '\n');
+    return repair.remaining > 0 ? 1 : 0;
+  }
   const cypher = QUERIES_USED.map((q) => loadQuery(q));
   if (flags.json) process.stdout.write(formatJson(review, { store: storeLabel, cypher }) + "\n");
   else if (flags.markdown) process.stdout.write(formatMarkdown(review) + "\n");
