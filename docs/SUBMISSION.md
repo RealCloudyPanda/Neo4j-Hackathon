@@ -47,3 +47,59 @@ Recording notes:
 **Elevator pitch** (≤200 chars):
 
 > Catch the PR that passes TypeScript but changes what an API field means. One Relate graph turns a unit change into a ranked shortlist of the code and tests it reaches.
+
+**About the project** (Devpost's markdown field):
+
+```markdown
+## The problem
+A pull request changes `OrderSummary.duration` from seconds to milliseconds. It is still a `number`, so
+TypeScript is green and CI passes. But a web formatter still assumes seconds, and a background worker that
+receives the value through a queue compares it against a two-hour SLA written in seconds. After the merge,
+every order that takes longer than 7.2 seconds pages on-call. Schema differs and type checkers can't see this:
+the type never changed, only the meaning.
+
+## What it does
+Contract Drift reads explicit meaning tags (`@unit`, `@format`, `@tz`) on shared contract fields, loads the
+base and head snapshots of a TypeScript monorepo into one Relate graph, and finds meaning changes with a
+Cypher query. Variable-length path queries then give the reviewer a ranked shortlist:
+
+- **MISMATCH** where the value reaches code or a linked field that states the old meaning
+- **REVIEW** where nothing on the path states a meaning
+- **TEST** for the tests to run, including tests the PR never touched
+
+Every entry has file:line evidence and the impact path. On an unrelated change (grams → kilograms on a
+different field) the worker stays off the list. It never guesses meaning and needs no account, key or network.
+
+## How it uses Relate
+- **Mode: single file** (`data/contract-drift.rl`, committed). A copied `.rl` opens read-only in a fresh
+  process with no side files, so judges can clone and query it with no rebuild.
+- **What the graph models:** snapshots, files and imports, fields and their per-snapshot versions, producers,
+  usages, function parameters, tests, and hidden `LINKED_TO` edges (such as a queue between services).
+- **The diff happens in the graph:** both snapshots live side by side; a meaning change is the same `Field`
+  with a different tag in two `FieldVersion`s.
+- **Findings are persisted** as `(:Drift)-[:FLAGS {rank, verdict, pathText}]->` so the CLI, the viewer and
+  ad-hoc Cypher all read the same answer.
+- Relate allows one writer per store and has no `close()`, so `build:graph` is the only writer and exits;
+  the CLI and the viewer open the store read-only. A content fingerprint in a `:Meta` node skips rebuilds,
+  so running the demo leaves `git status` clean.
+
+## How I built it
+TypeScript on Node 22. ts-morph extracts tagged fields, producers, usages and parameter flow; the graph is
+loaded with `UNWIND` batches; review queries live in `queries/*.cypher` and are loaded verbatim. The viewer
+is Express plus Cytoscape.js with Review, Cypher and Store tabs. The CLI prints text, JSON or Markdown for
+a PR comment, and exits 1 when it finds a MISMATCH.
+
+## Challenges
+- Relate's single-writer store with no `close()`: designed a build-then-exit writer and read-only readers.
+- `.rl` bytes differ between identical builds: added a fingerprint so a judge's run doesn't dirty the repo.
+- Values that cross a queue have no import to follow: added a small declared-links manifest, stored in the
+  graph with `source: "manifest"`.
+
+## What's next
+Following values through local variables (today a read stored in a variable first is reported as REVIEW),
+checking out git refs directly, and a GitHub Action that posts the `--markdown` table on pull requests.
+
+## Built with AI assistance
+Planning, code and docs were drafted with AI coding assistants under my direction and checked by running
+them. The product itself uses no AI: every finding comes from the graph. All output shown comes from real runs.
+```
