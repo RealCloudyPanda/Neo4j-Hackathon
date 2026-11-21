@@ -28,7 +28,7 @@ test("the committed Relate file opens by itself and the build skips it", (t) => 
   const analyze = run("analyze", "--json");
   assert.equal(analyze.status, 1);
   const report = JSON.parse(analyze.stdout);
-  assert.equal(report.drifts[0].key, "OrderSummary.duration");
+  assert.equal(report.drifts[0].key, "packages/contracts/src/order.ts#OrderSummary.duration");
   assert.ok(report.drifts[0].entries.some((entry: { path: string; verdict: string; inDiff: boolean }) =>
     entry.path === "apps/worker/src/sla.test.ts" && entry.verdict === "TEST" && !entry.inDiff,
   ));

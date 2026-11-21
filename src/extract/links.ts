@@ -28,13 +28,14 @@ export function readLinks(dir: string, knownKeys: Set<string>): LinkRec[] {
     for (const [name, v] of Object.entries({ from, to, via })) {
       if (typeof v !== "string" || !v) throw new LinkManifestError(`${at}: "${name}" must be a non-empty string`);
     }
-    for (const [name, key] of [["from", from], ["to", to]] as const) {
-      if (!knownKeys.has(key as string)) {
-        throw new LinkManifestError(
-          `${at}: "${name}" names unknown contract field "${key}". Known: ${[...knownKeys].sort().join(", ")}`,
-        );
-      }
-    }
-    return { from: from as string, to: to as string, via: via as string, reason: typeof reason === "string" ? reason : "" };
+    const resolveKey = (name: string, key: unknown): string => {
+      const selector = String(key);
+      if (knownKeys.has(selector)) return selector;
+      const matches = [...knownKeys].filter(k => k.endsWith(`#${selector}`));
+      if (matches.length === 1) return matches[0];
+      if (matches.length > 1) throw new LinkManifestError(`${at}: "${name}" selector "${selector}" is ambiguous. Use a qualified key: ${matches.sort().join(", ")}`);
+      throw new LinkManifestError(`${at}: "${name}" names unknown contract field "${selector}". Known: ${[...knownKeys].sort().join(", ")}`);
+    };
+    return { from: resolveKey("from", from), to: resolveKey("to", to), via: via as string, reason: typeof reason === "string" ? reason : "" };
   });
 }

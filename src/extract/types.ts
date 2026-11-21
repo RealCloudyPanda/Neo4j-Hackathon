@@ -18,6 +18,7 @@ export interface ImportRec {
 
 export interface FieldVersionRec extends Tags {
   key: string;
+  displayName: string;
   type: string;
   doc: string;
   path: string;

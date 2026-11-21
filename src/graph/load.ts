@@ -44,8 +44,9 @@ export function loadSnapshot(store: Store, s: SnapshotData): void {
     run(
       `UNWIND $rows AS r
        MERGE (f:Field {key: r.key})
+       SET f.displayName = r.displayName
        MERGE (v:FieldVersion {id: r.id})
-       SET v.snapshot = r.snapshot, v.key = r.key, v.type = r.type, v.unit = r.unit, v.format = r.format,
+       SET v.snapshot = r.snapshot, v.key = r.key, v.displayName = r.displayName, v.type = r.type, v.unit = r.unit, v.format = r.format,
            v.tz = r.tz, v.doc = r.doc, v.path = r.path, v.line = r.line
        MERGE (v)-[:VERSION_OF]->(f)
        WITH v, r

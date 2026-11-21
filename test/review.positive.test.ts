@@ -6,7 +6,7 @@ test("duration PR: one drift, seconds → milliseconds", () => {
   const r = review("pr-duration-ms");
   assert.equal(r.drifts.length, 1);
   const d = r.drifts[0];
-  assert.deepEqual([d.key, d.tag, d.before, d.after], ["OrderSummary.duration", "unit", "seconds", "milliseconds"]);
+  assert.deepEqual([d.key, d.tag, d.before, d.after], ["packages/contracts/src/order.ts#OrderSummary.duration", "unit", "seconds", "milliseconds"]);
   assert.deepEqual(d.producers.map((p) => [p.name, p.inDiff]), [["order.summary", true]]);
 });
 

@@ -53,7 +53,7 @@ export function extractFields(project: Project, dir: string): FieldDecl[] {
       const owner = ownerName(prop);
       if (!owner) continue;
       const tags = tagsFromJsDoc(prop);
-      if (!hasTags(tags)) continue;
+
       const doc = prop
         .getJsDocs()
         .map((d) => d.getDescription().trim())
@@ -62,7 +62,8 @@ export function extractFields(project: Project, dir: string): FieldDecl[] {
       out.push({
         node: prop,
         rec: {
-          key: `${owner}.${prop.getName()}`,
+          key: `${relPath(dir, sf)}#${owner}.${prop.getName()}`,
+          displayName: `${owner}.${prop.getName()}`,
           type: prop.getTypeNode()?.getText() ?? prop.getType().getText(),
           doc,
           path: relPath(dir, sf),
