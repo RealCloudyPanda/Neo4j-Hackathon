@@ -29,3 +29,7 @@ test('alias traversal has a fixed depth bound', () => {
  const chain = ['const a0 = e.duration;', ...Array.from({length:12}, (_,i)=>`const a${i+1} = a${i};`)].join(' ');
  assert.equal(usages(chain + 'return imported(a12);')[0].passesTo, undefined);
 });
+
+test('comparisons preserve field reads without claiming arithmetic conversion', () => {
+ assert.equal(usages('return e.duration > 5;')[0].flowNote, undefined);
+});

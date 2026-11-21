@@ -37,7 +37,7 @@ export function judge(d: DriftRow, r: ImpactRow): { verdict: Verdict; reason: st
     return { verdict: "MISMATCH", reason: stated, detail: where };
   }
   if (r.viaKey !== d.key) {
-    const link = `hidden link: ${d.key} → ${r.viaKey}`;
+    const link = `hidden link: ${d.key.split("#").pop()} → ${r.viaKey.split("#").pop()}`;
     const via = r.linkVia.length ? `via ${r.linkVia.join(", ")} (contract-drift.links.json)` : null;
     if (r.viaTag === d.after) return { verdict: "OK", reason: `${link} (${at} ${r.viaTag}): already updated`, detail: via };
     if (r.viaTag) return { verdict: "MISMATCH", reason: `${link} (${at} ${r.viaTag})`, detail: via };

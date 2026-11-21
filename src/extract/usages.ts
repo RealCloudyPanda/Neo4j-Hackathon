@@ -62,7 +62,7 @@ export function extractUsages(fields: FieldDecl[], dir: string): { producers: Pr
         }
         continue;
       }
-      if (read && Node.isBinaryExpression(read.getParent())) usage.flowNote = 'value participates in a transform; verify conversion by hand';
+      if (read && Node.isBinaryExpression(read.getParent()) && ['+', '-', '*', '/', '%', '**', '<<', '>>', '>>>', '&', '|', '^'].includes((read.getParent() as import('ts-morph').BinaryExpression).getOperatorToken().getText())) usage.flowNote = 'value participates in a transform; verify conversion by hand';
       usages.push(usage);
     }
   }
