@@ -29,7 +29,7 @@ test("analyze rejects a snapshot pair with no persisted comparison", () => {
   assert.ifError(result.error);
   assert.equal(result.status, 2);
   assert.equal(result.stdout, "");
-  assert.match(result.stderr, /only contains comparisons against "base"/);
+  assert.match(result.stderr, /Comparison .* is not saved/);
 });
 
 test("folder analyze creates a reusable store and protects existing files", (t) => {

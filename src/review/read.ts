@@ -89,7 +89,7 @@ export function readReview(store: Store, base: string, head: string): Review {
   const flagged = reports.flatMap((d) => d.entries.map((e) => e.targetId));
   const other = store.query<{ usages: number; fields: number }>(
     `MATCH (v:FieldVersion {snapshot: $head})-[:READ_AT]->(u:Usage {inTest: false})
-     WHERE NOT u.id IN $flagged
+     WHERE NOT u.id IN $flagged AND (v.unit IS NOT NULL OR v.format IS NOT NULL OR v.tz IS NOT NULL)
      RETURN count(u) AS usages, count(DISTINCT v.key) AS fields`,
     { head, flagged },
   )[0] ?? { usages: 0, fields: 0 };
