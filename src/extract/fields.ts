@@ -50,7 +50,9 @@ export function extractFields(project: Project, dir: string): FieldDecl[] {
   for (const sf of project.getSourceFiles()) {
     if (!isInside(dir, sf)) continue;
     for (const prop of sf.getDescendantsOfKind(SyntaxKind.PropertySignature)) {
-      const owner = ownerName(prop);
+      const localOwner = ownerName(prop);
+      const namespaces = prop.getAncestors().filter(Node.isModuleDeclaration).reverse().map(n => n.getName());
+      const owner = localOwner ? [...namespaces, localOwner].join('.') : undefined;
       if (!owner) continue;
       const tags = tagsFromJsDoc(prop);
 

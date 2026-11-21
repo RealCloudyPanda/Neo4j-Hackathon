@@ -24,3 +24,9 @@ test('manifest short selectors reject ambiguity and accept full identity', t => 
   write('a.ts#Event.duration');
   assert.equal(readLinks(dir, keys)[0].from, 'a.ts#Event.duration');
 });
+
+test('namespace owners qualify identities within the same module', () => {
+  const project = new Project({ useInMemoryFileSystem: true });
+  project.createSourceFile('/fixture/events.ts', 'namespace A { export interface Event { /** @unit seconds */ duration: number } } namespace B { export interface Event { /** @unit ms */ duration: number } }');
+  assert.deepEqual(extractFields(project, '/fixture').map(f => f.rec.key), ['events.ts#A.Event.duration', 'events.ts#B.Event.duration']);
+});
