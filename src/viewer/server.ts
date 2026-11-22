@@ -1,54 +1,23 @@
 import express, { type Request, type Response } from "express";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { join } from "node:path";
 import { driftGraph } from "./driftGraph.ts";
 import { graphElements } from "./elements.ts";
+import { snippet } from "./snippet.ts";
+import { storeInfo } from "./storeInfo.ts";
 import { parseArgs } from "../cli/args.ts";
 import { listPresets } from "../relate/presets.ts";
 import { reviewQueryTexts } from "../review/queries.ts";
 import { readMeta } from "../graph/build.ts";
-import { DEFAULT_STORE, describeError, loadQuery, openStore, ROOT, type Store } from "../relate/store.ts";
+import { DEFAULT_STORE, describeError, openStore, ROOT, type Store } from "../relate/store.ts";
 import { writeClause } from "../relate/guard.ts";
 import { compareReviews, repairMarkdown } from '../review/compare.ts';
 import { formatMarkdown } from '../cli/format/markdown.ts';
 import { readReview } from "../review/read.ts";
-import { snapshotDirectory } from '../graph/catalog.ts';
 import { SNAPSHOT_TITLES } from "../extract/index.ts";
 
 const EXAMPLES = join(ROOT, "examples");
-const SNAPSHOTS = join(EXAMPLES, "shop-monorepo/snapshots");
 const ROW_LIMIT = 500;
 const TIMEOUT_MS = 2000;
-
-function snippet(snapshot: string, path: string, line: number) {
-  const root = snapshotDirectory(snapshot);
-  if (!root || !Number.isInteger(line) || line < 1) return null;
-  const file = resolve(root, path);
-  const rel = relative(root, file);
-  if (rel.startsWith("..") || rel.includes(`..${sep}`) || !existsSync(file) || !statSync(file).isFile()) return null;
-  const lines = readFileSync(file, "utf8").split("\n");
-  const from = Math.max(1, line - 3);
-  const to = Math.min(lines.length, line + 3);
-  return { path, line, from, lines: lines.slice(from - 1, to) };
-}
-
-function storeInfo(store: Store) {
-  const labels = store.query<{ label: string; n: number }>(
-    "MATCH (n) UNWIND labels(n) AS label RETURN label, count(*) AS n ORDER BY n DESC, label",
-  );
-  const rels = store.query<{ type: string; n: number }>("MATCH ()-[r]->() RETURN type(r) AS type, count(*) AS n ORDER BY n DESC, type");
-  return {
-    path: relative(ROOT, store.path),
-    absPath: store.path,
-    sizeBytes: statSync(store.path).size,
-    mode: "single file (.rl)",
-    readOnly: store.readOnly,
-    meta: readMeta(store),
-    labels: labels.map((r) => ({ label: r.label, n: Number(r.n) })),
-    relationships: rels.map((r) => ({ type: r.type, n: Number(r.n) })),
-    relateCli: `relate --database ./${relative(ROOT, store.path)} --read-only "MATCH (d:Drift)-[r:FLAGS]->(x) RETURN d.key, r.verdict, x.path"`,
-  };
-}
 
 export function createApp(storePath = DEFAULT_STORE) {
   const app = express();
