@@ -9,10 +9,10 @@ import { parseArgs } from "./args.ts";
 import { formatJson } from "./format/json.ts";
 import { formatMarkdown } from "./format/markdown.ts";
 import { formatText } from "./format/text.ts";
+import { REVIEW_QUERIES } from "../review/queries.ts";
 
 const isDir = (p: string) => existsSync(p) && statSync(p).isDirectory();
 
-export const QUERIES_USED = ["drift", "impact", "tests"];
 
 export async function runAnalyze(argv: string[]): Promise<number> {
   const { flags } = parseArgs(argv, ["json", "markdown", "no-color", "show-cypher"]);
@@ -91,7 +91,7 @@ export async function runAnalyze(argv: string[]): Promise<number> {
     process.stdout.write((flags.json ? JSON.stringify(repair, null, 2) : repairMarkdown(repair)) + '\n');
     return repair.remaining > 0 ? 1 : 0;
   }
-  const cypher = QUERIES_USED.map((q) => loadQuery(q));
+  const cypher = REVIEW_QUERIES.map((q) => loadQuery(q));
   if (flags.json) process.stdout.write(formatJson(review, { store: storeLabel, cypher }) + "\n");
   else if (flags.markdown) process.stdout.write(formatMarkdown(review) + "\n");
   else

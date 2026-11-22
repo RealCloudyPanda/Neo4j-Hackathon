@@ -3,8 +3,8 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import type { NodeValue, PathValue, RelationshipValue } from "@relate/relate";
 import { parseArgs } from "../cli/args.ts";
-import { listPresets } from "../cli/cypher.ts";
-import { QUERIES_USED } from "../cli/analyze.ts";
+import { listPresets } from "../relate/presets.ts";
+import { reviewQueryTexts } from "../review/queries.ts";
 import { readMeta } from "../graph/build.ts";
 import { DEFAULT_STORE, describeError, loadQuery, openStore, ROOT, type Store } from "../relate/store.ts";
 import { writeClause } from "../relate/guard.ts";
@@ -201,7 +201,7 @@ export function createApp(storePath = DEFAULT_STORE) {
         drifts: r.drifts.map((d) => ({ id: d.id, key: d.key, displayName: d.displayName, tag: d.tag, before: d.before, after: d.after })),
       };
     });
-    res.json({ reviews, queries: Object.fromEntries(QUERIES_USED.map((q) => [q, loadQuery(q)])) });
+    res.json({ reviews, queries: reviewQueryTexts() });
   });
 
   app.get('/api/repair', (req, res) => {

@@ -1,22 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { NodeValue, RelationshipValue } from "@relate/relate";
-import { DEFAULT_STORE, describeError, openStore, QUERIES_DIR } from "../relate/store.ts";
+import { DEFAULT_STORE, describeError, openStore } from "../relate/store.ts";
 import { writeClause } from "../relate/guard.ts";
 import { parseArgs } from "./args.ts";
-
-export const PRESETS_DIR = join(QUERIES_DIR, "presets");
-
-export function listPresets(): { name: string; title: string; cypher: string }[] {
-  return readdirSync(PRESETS_DIR)
-    .filter((f) => f.endsWith(".cypher"))
-    .sort()
-    .map((f) => {
-      const cypher = readFileSync(join(PRESETS_DIR, f), "utf8").trim();
-      const title = /^\/\/\s*([^:\n]+)/.exec(cypher)?.[1].trim() ?? f;
-      return { name: f.replace(/\.cypher$/, ""), title, cypher };
-    });
-}
+import { findPreset, listPresets } from "../relate/presets.ts";
 
 const isNode = (v: unknown): v is NodeValue => !!v && typeof v === "object" && (v as NodeValue).kind === "node";
 const isRel = (v: unknown): v is RelationshipValue => !!v && typeof v === "object" && (v as RelationshipValue).kind === "relationship";
@@ -45,7 +31,7 @@ export async function runCypher(argv: string[]): Promise<number> {
   }
   let cypher = positional.join(" ").trim();
   if (typeof flags.preset === "string") {
-    const p = listPresets().find((x) => x.name === flags.preset);
+    const p = findPreset(String(flags.preset));
     if (!p) {
       console.error(`Unknown preset "${flags.preset}". Try: ${listPresets().map((x) => x.name).join(", ")}`);
       return 2;
