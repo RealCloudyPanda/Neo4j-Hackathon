@@ -15,7 +15,6 @@ import { formatMarkdown } from '../cli/format/markdown.ts';
 import { readReview } from "../review/read.ts";
 import { SNAPSHOT_TITLES } from "../extract/index.ts";
 
-const EXAMPLES = join(ROOT, "examples");
 const ROW_LIMIT = 500;
 const TIMEOUT_MS = 2000;
 
