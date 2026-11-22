@@ -1,7 +1,8 @@
 import express, { type Request, type Response } from "express";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
-import type { NodeValue, PathValue, RelationshipValue } from "@relate/relate";
+import { driftGraph } from "./driftGraph.ts";
+import { graphElements } from "./elements.ts";
 import { parseArgs } from "../cli/args.ts";
 import { listPresets } from "../relate/presets.ts";
 import { reviewQueryTexts } from "../review/queries.ts";
@@ -18,119 +19,6 @@ const EXAMPLES = join(ROOT, "examples");
 const SNAPSHOTS = join(EXAMPLES, "shop-monorepo/snapshots");
 const ROW_LIMIT = 500;
 const TIMEOUT_MS = 2000;
-
-type El = { data: Record<string, unknown>; classes?: string };
-
-function shortLabel(n: NodeValue): string {
-  const p = n.properties;
-  switch (n.labels[0]) {
-    case "Drift":
-      return `${p.displayName ?? String(p.key).split("#").pop()}\n@${p.tag} ${p.before} → ${p.after}`;
-    case "FieldVersion":
-      return `${p.displayName ?? String(p.key).split("#").pop()}\n${p.unit ? `@unit ${p.unit}` : p.format ? `@format ${p.format}` : ""}`;
-    case "Usage":
-      return `${String(p.path).split("/").pop()}:${p.line}`;
-    case "Param":
-      return `${p.name}${p.unit ? ` @unit ${p.unit}` : ""}`;
-    case "Function":
-      return `${p.name}()`;
-    case "File":
-      return String(p.path).split("/").pop() ?? String(p.path);
-    default:
-      return String(p.id ?? p.key ?? p.name ?? n.labels[0]);
-  }
-}
-
-export function nodeEl(n: NodeValue, extra: Record<string, unknown> = {}): El {
-  return {
-    data: { id: n.elementId, label: shortLabel(n), kind: n.labels[0], props: n.properties, ...extra },
-    classes: n.labels[0].toLowerCase(),
-  };
-}
-
-export function relEl(r: RelationshipValue): El {
-  return {
-    data: {
-      id: r.elementId,
-      source: r.startElementId,
-      target: r.endElementId,
-      type: r.type,
-      label: r.type === "LINKED_TO" ? `hidden link · ${r.properties.via}` : r.type,
-    },
-    classes: r.type.toLowerCase(),
-  };
-}
-
-export function driftGraph(store: Store, id: string) {
-  const els = new Map<string, El>();
-  const highlight: Record<string, string[]> = {};
-  const add = (v: NodeValue | RelationshipValue, extra?: Record<string, unknown>) => {
-    if (els.has(v.elementId)) return;
-    els.set(v.elementId, v.kind === "node" ? nodeEl(v, extra) : relEl(v));
-  };
-
-  const head = store.conn.query(
-    `MATCH (d:Drift {id: $id})-[a:AFTER]->(h:FieldVersion)
-     OPTIONAL MATCH (d)-[b:BEFORE]->(bv:FieldVersion)
-     RETURN d, a, h, b, bv`,
-    { id },
-  ).rows[0];
-  if (!head) return null;
-  for (const k of ["d", "a", "h", "b", "bv"]) if (head[k]) add(head[k] as NodeValue);
-  const dId = (head.d as NodeValue).elementId;
-  const hId = (head.h as NodeValue).elementId;
-  const aId = (head.a as RelationshipValue).elementId;
-
-  const usages = store.conn.query(
-    `MATCH (d:Drift {id: $id})-[:AFTER]->(h:FieldVersion)
-     MATCH p = (h)-[:LINKED_TO*0..2]->(:FieldVersion)-[:READ_AT]->(u:Usage)
-     WHERE EXISTS { MATCH (d)-[:FLAGS]->(u) }
-     OPTIONAL MATCH q = (u)-[:PASSES_TO]->(:Param)-[:PARAM_OF]->(:Function)
-     MATCH (d)-[f:FLAGS]->(u)
-     RETURN u.id AS target, p, q, f.verdict AS verdict`,
-    { id },
-  ).rows;
-  for (const r of usages) {
-    const ids = [dId, aId, hId];
-    for (const path of [r.p, r.q] as (PathValue | null)[]) {
-      for (const v of path ?? []) {
-        add(v, v.kind === "node" && v.labels[0] === "Usage" ? { verdict: r.verdict } : undefined);
-        ids.push(v.elementId);
-      }
-    }
-    highlight[String(r.target)] = [...new Set(ids)];
-  }
-
-  const tests = store.conn.query(
-    `MATCH (d:Drift {id: $id})-[f:FLAGS {verdict: 'TEST'}]->(t:File)
-     RETURN t, f.reaches AS reaches, f.hops AS hops, t.id AS target`,
-    { id },
-  ).rows;
-  const usageByPath = new Map<string, string>();
-  const fnByPath = new Map<string, string>();
-  for (const el of els.values()) {
-    const props = el.data.props as Record<string, unknown> | undefined;
-    if (el.data.kind === "Usage") usageByPath.set(String(props?.path), String(el.data.id));
-    if (el.data.kind === "Function") fnByPath.set(String(props?.path), String(el.data.id));
-  }
-  for (const r of tests) {
-    const t = r.t as NodeValue;
-    add(t, { verdict: "TEST", inDiff: t.properties.inDiff });
-    const ids = [dId, t.elementId];
-    const reaches = (r.reaches as string[]) ?? [];
-    const targets = Number(r.hops) === 0 ? [hId] : reaches.map((p) => usageByPath.get(p) ?? fnByPath.get(p)).filter(Boolean);
-    for (const target of targets as string[]) {
-      const eid = `${t.elementId}->${target}`;
-      els.set(eid, {
-        data: { id: eid, source: t.elementId, target, type: Number(r.hops) === 0 ? "READS" : "IMPORTS", label: Number(r.hops) === 0 ? "reads" : Number(r.hops) > 1 ? `imports ×${r.hops}` : "imports" },
-        classes: "test-edge",
-      });
-      ids.push(eid, target);
-    }
-    highlight[String(r.target)] = ids;
-  }
-  return { elements: [...els.values()], highlight };
-}
 
 function snippet(snapshot: string, path: string, line: number) {
   const root = snapshotDirectory(snapshot);
@@ -289,7 +177,7 @@ export function createApp(storePath = DEFAULT_STORE) {
         truncated: result.rows.length > ROW_LIMIT,
         total: result.rows.length,
         ms: Date.now() - started,
-        elements: [...g.nodes.map((n) => nodeEl(n)), ...g.relationships.map(relEl)],
+        elements: graphElements(g),
       });
     } catch (err) {
       const e = err as { message?: string; code?: string | null };
