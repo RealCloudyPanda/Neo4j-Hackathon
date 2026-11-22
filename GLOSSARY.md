@@ -58,3 +58,5 @@ _Avoid_: database, DB, cache.
 
 **Reviewer**: the person approving the pull request. The one user.
 _Avoid_: developer, user, maintainer.
+
+**Usage occurrence**: the exact source position of a usage, identified by its file, line and column. Alias traversal records the final consumer position and carries any uncertainty with that evidence. Graph IDs add the snapshot identity; repair comparisons retain the occurrence identity across snapshots. Moving a usage creates missing evidence rather than proving a repair.

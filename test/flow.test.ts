@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Project } from 'ts-morph';
 import { extractFields } from '../src/extract/fields.ts';
-import { extractUsages } from '../src/extract/usages.ts';
+import { extractUsages } from '../src/extract/usageEvidence.ts';
 
 function usages(body: string) {
  const project = new Project({ useInMemoryFileSystem:true });

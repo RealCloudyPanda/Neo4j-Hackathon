@@ -11,13 +11,13 @@ import { compareReviews, repairMarkdown } from '../src/review/compare.ts';
 test('two consumer occurrences on one line remain separate through partial and full repairs', () => {
   const root = mkdtempSync(join(tmpdir(), 'contract-drift-occurrences-'));
   try {
-    const snapshots = ['base', 'broken', 'partial', 'fixed'].map(id => {
+    const snapshots = ['base', 'broken', 'partial', 'fixed', 'moved'].map(id => {
       const dir = join(root, id);
       mkdirSync(dir);
       writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify({ compilerOptions: { strict: true }, include: ['*.ts'] }));
       writeFileSync(join(dir, 'schema.ts'), `export interface Event {\n/** @unit ${id === 'base' ? 'seconds' : 'milliseconds'} */\nelapsed: number;\n}`);
-      writeFileSync(join(dir, 'format.ts'), `export function first(/** @unit ${['partial', 'fixed'].includes(id) ? 'milliseconds' : 'seconds'} */ n: number) { return n; }\nexport function second(/** @unit ${id === 'fixed' ? 'milliseconds' : 'seconds'} */ n: number) { return n; }`);
-      writeFileSync(join(dir, 'use.ts'), `import { Event } from './schema';\nimport { first, second } from './format';\nexport function render(event: Event) { return [first(event.elapsed), second(event.elapsed)]; }`);
+      writeFileSync(join(dir, 'format.ts'), `export function first(/** @unit ${['partial', 'fixed', 'moved'].includes(id) ? 'milliseconds' : 'seconds'} */ n: number) { return n; }\nexport function second(/** @unit ${['fixed', 'moved'].includes(id) ? 'milliseconds' : 'seconds'} */ n: number) { return n; }`);
+      writeFileSync(join(dir, 'use.ts'), `${id === 'moved' ? '\n' : ''}import { Event } from './schema';\nimport { first, second } from './format';\nexport function render(event: Event) { return [first(event.elapsed), second(event.elapsed)]; }`);
       return { id, dir };
     });
     const store = openStore(':memory:');
@@ -33,6 +33,10 @@ test('two consumer occurrences on one line remain separate through partial and f
     assert.equal(fixed.resolved, 2);
     assert.equal(fixed.changes.length, 2);
     assert.equal(new Set(fixed.changes.map(c => c.column)).size, 2);
+    const moved = compareReviews(broken, readReview(store, 'base', 'moved'));
+    assert.equal(moved.resolved, 0);
+    assert.equal(moved.changes.filter(c => c.missingEvidence).length, 2);
+    assert.equal(moved.changes.filter(c => c.after === 'OK').length, 2);
     for (const change of fixed.changes) assert.ok(repairMarkdown(fixed).includes(`use.ts:3:${change.column}`));
   } finally {
     rmSync(root, { recursive: true, force: true });

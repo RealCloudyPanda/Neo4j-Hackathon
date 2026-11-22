@@ -1,70 +1,50 @@
-import {
-  Node,
-  SyntaxKind,
-  VariableDeclarationKind,
-  type CallExpression,
-  type Expression,
-  type ParameterDeclaration,
-  type SourceFile,
-} from "ts-morph";
-import type { FieldDecl } from "./fields.ts";
-import { tagsFromText } from "./fields.ts";
+import { Node, SyntaxKind, VariableDeclarationKind, type CallExpression, type Expression, type ParameterDeclaration } from "ts-morph";
+import { tagsFromText, type FieldDecl } from "./fields.ts";
 import { isInside, relPath } from "./project.ts";
-import type { FunctionRec, ParamRec, ProducerRec, Tags, UsageRec } from "./types.ts";
+import type { FunctionRec, ParamRec, ProducerRec, Tags } from "./types.ts";
 
-const lineText = (sf: SourceFile, line: number): string => (sf.getFullText().split("\n")[line - 1] ?? "").trim();
+export interface UsageRec {
+  key: string;
+  path: string;
+  line: number;
+  col: number;
+  kind: "read" | "destructure";
+  code: string;
+  flowNote?: string;
+  passesTo?: { fn: FunctionRec; param: ParamRec; argIndex: number };
+}
 
-export function extractUsages(fields: FieldDecl[], dir: string): { producers: ProducerRec[]; usages: UsageRec[] } {
-  const producers: ProducerRec[] = [];
-  const usages: UsageRec[] = [];
-  const seen = new Set<string>();
+type Location = Pick<UsageRec, 'path' | 'line' | 'col' | 'code'>;
 
-  for (const { rec, node } of fields) {
-    for (const ref of node.findReferencesAsNodes()) {
-      const sf = ref.getSourceFile();
-      if (!isInside(dir, sf)) continue;
-      const path = relPath(dir, sf);
-      const line = ref.getStartLineNumber();
-      const col = ref.getStart() - sf.compilerNode.getLineStarts()[line - 1] + 1;
-      const id = `${rec.key}@${path}:${line}:${col}`;
-      if (seen.has(id)) continue;
-      seen.add(id);
-      const parent = ref.getParent();
-      if (!parent) continue;
+function sourceEvidence(node: Node, dir: string): Location {
+  const sf = node.getSourceFile();
+  const line = node.getStartLineNumber();
+  return { path: relPath(dir, sf), line, col: node.getStart() - sf.compilerNode.getLineStarts()[line - 1] + 1,
+    code: (sf.getFullText().split("\n")[line - 1] ?? "").trim() };
+}
 
-      if (Node.isPropertyAssignment(parent) || Node.isShorthandPropertyAssignment(parent)) {
-        if (parent.getNameNode() !== ref) continue;
-        producers.push({ key: rec.key, name: producerName(parent), path, line, code: lineText(sf, line) });
-        continue;
-      }
+function usageEvidence(key: string, at: Location, kind: UsageRec['kind'], value: Node | undefined, dir: string): UsageRec[] {
+  const usage = { key, ...at, kind };
+  const flows = value ? followAliases(value, dir) : [];
+  if (flows.length) return flows.map(flow => ({ ...usage, ...sourceEvidence(flow.node, dir), passesTo: flow.flow, flowNote: flow.note }));
+  return [usage];
+}
 
-      let read: Expression | undefined;
-      let kind: UsageRec["kind"] = "read";
-      if (Node.isPropertyAccessExpression(parent) && parent.getNameNode() === ref) read = parent;
-      else if (Node.isElementAccessExpression(parent)) read = parent;
-      else if (Node.isBindingElement(parent)) kind = "destructure";
-      else continue;
+function usageId(snapshot: string, usage: Pick<UsageRec, 'path' | 'line' | 'col'>): string {
+  return `${snapshot}:${usage.path}:${usage.line}:${usage.col}`;
+}
 
-      const usage: UsageRec = { key: rec.key, path, line, col, kind, code: lineText(sf, line) };
-      const value = read ?? (Node.isBindingElement(parent) ? parent.getNameNode() : undefined);
-      const flows = value ? followAliases(value, dir) : [];
-      if (flows.length) {
-        for (const flow of flows) {
-          const at = flow.node;
-          const sinkFile = at.getSourceFile();
-          const sinkLine = at.getStartLineNumber();
-          const sinkCol = at.getStart() - sinkFile.compilerNode.getLineStarts()[sinkLine - 1] + 1;
-          usages.push({ ...usage, path: relPath(dir, sinkFile), line: sinkLine, col: sinkCol, code: lineText(sinkFile, sinkLine), passesTo: flow.flow, flowNote: flow.note });
-        }
-        continue;
-      }
-      if (read && Node.isBinaryExpression(read.getParent()) && ['+', '-', '*', '/', '%', '**', '<<', '>>', '>>>', '&', '|', '^'].includes((read.getParent() as import('ts-morph').BinaryExpression).getOperatorToken().getText())) usage.flowNote = 'value participates in a transform; verify conversion by hand';
-      usages.push(usage);
-    }
-  }
-  const order = (a: { path: string; line: number }, b: { path: string; line: number }) =>
-    a.path.localeCompare(b.path) || a.line - b.line;
-  return { producers: producers.sort(order), usages: usages.sort(order) };
+function storedUsage(snapshot: string, usage: UsageRec, inTest: boolean) {
+  const { passesTo, ...evidence } = usage;
+  return { ...evidence, id: usageId(snapshot, usage), snapshot, flowNote: usage.flowNote ?? null,
+    inTest, fv: `${snapshot}:${usage.key}`, fileId: `${snapshot}:${usage.path}` };
+}
+
+export function repairEvidence(snapshot: string, entry: { targetId: string; path: string; line: number | null }) {
+  const prefix = `${snapshot}:${entry.path}:${entry.line}:`;
+  const column = entry.targetId.startsWith(prefix) ? Number(entry.targetId.slice(prefix.length)) : NaN;
+  const occurrence = entry.targetId.startsWith(`${snapshot}:`) ? entry.targetId.slice(snapshot.length + 1) : entry.targetId;
+  return { occurrence, column };
 }
 
 function followAliases(value: Node, dir: string, depth = 0, seen = new Set<string>()): { node: Expression; flow?: NonNullable<UsageRec['passesTo']>; note?: string }[] {
@@ -151,6 +131,46 @@ function paramTags(p: ParameterDeclaration, fnNode: Node): Tags {
   return {};
 }
 
+
+export function extractUsages(fields: FieldDecl[], dir: string): { producers: ProducerRec[]; usages: UsageRec[] } {
+  const producers: ProducerRec[] = [];
+  const usages: UsageRec[] = [];
+  const seen = new Set<string>();
+
+  for (const { rec, node } of fields) {
+    for (const ref of node.findReferencesAsNodes()) {
+      const sf = ref.getSourceFile();
+      if (!isInside(dir, sf)) continue;
+      const at = sourceEvidence(ref, dir);
+      const { path, line, code } = at;
+      const id = `${rec.key}@${path}:${line}:${at.col}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const parent = ref.getParent();
+      if (!parent) continue;
+
+      if (Node.isPropertyAssignment(parent) || Node.isShorthandPropertyAssignment(parent)) {
+        if (parent.getNameNode() !== ref) continue;
+        producers.push({ key: rec.key, name: producerName(parent), path, line, code });
+        continue;
+      }
+
+      let read: Expression | undefined;
+      let kind: UsageRec["kind"] = "read";
+      if (Node.isPropertyAccessExpression(parent) && parent.getNameNode() === ref) read = parent;
+      else if (Node.isElementAccessExpression(parent)) read = parent;
+      else if (Node.isBindingElement(parent)) kind = "destructure";
+      else continue;
+
+      const value = read ?? (Node.isBindingElement(parent) ? parent.getNameNode() : undefined);
+      usages.push(...usageEvidence(rec.key, at, kind, value, dir));
+    }
+  }
+  const order = (a: { path: string; line: number }, b: { path: string; line: number }) =>
+    a.path.localeCompare(b.path) || a.line - b.line;
+  return { producers: producers.sort(order), usages: usages.sort(order) };
+}
+
 function producerName(prop: Node): string {
   const fn = prop.getFirstAncestor(
     (a) => Node.isFunctionDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a) || Node.isMethodDeclaration(a),
@@ -172,4 +192,30 @@ function producerName(prop: Node): string {
     }
   }
   return fnName;
+}
+
+export function usageGraphRows(snap: string, usages: UsageRec[], testPaths: Set<string>) {
+  const flows = usages.flatMap((u) => {
+      if (!u.passesTo) return [];
+      const { fn, param, argIndex } = u.passesTo;
+      const fnId = `${snap}:${fn.path}:${fn.name}`;
+      return [
+        {
+          usage: usageId(snap, u),
+          fnId,
+          fnName: fn.name,
+          fnPath: fn.path,
+          fnLine: fn.line,
+          fnFile: `${snap}:${fn.path}`,
+          paramId: `${fnId}:${param.name}`,
+          paramName: param.name,
+          paramIndex: param.index,
+          paramLine: param.line,
+          unit: param.unit ?? null, format: param.format ?? null, tz: param.tz ?? null,
+          argIndex,
+          snapshot: snap,
+        },
+      ];
+    });
+  return { usages: usages.map(u => storedUsage(snap, u, testPaths.has(u.path))), flows };
 }

@@ -1,3 +1,5 @@
+import type { UsageRec } from "./usageEvidence.ts";
+
 export const MEANING_TAGS = ["unit", "format", "tz"] as const;
 export type MeaningTag = (typeof MEANING_TAGS)[number];
 export type Tags = Partial<Record<MeaningTag, string>>;
@@ -43,17 +45,6 @@ export interface FunctionRec {
   name: string;
   path: string;
   line: number;
-}
-
-export interface UsageRec {
-  key: string;
-  path: string;
-  line: number;
-  col: number;
-  kind: "read" | "destructure";
-  code: string;
-  flowNote?: string;
-  passesTo?: { fn: FunctionRec; param: ParamRec; argIndex: number };
 }
 
 export interface LinkRec {

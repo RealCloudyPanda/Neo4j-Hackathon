@@ -1,13 +1,17 @@
+import { repairEvidence } from "../extract/usageEvidence.ts";
 import type { Review } from './read.ts';
 import type { Verdict } from './types.ts';
 
 export function compareReviews(before: Review, after: Review) {
   if (before.base !== after.base) throw new Error('Repair comparisons require the same base snapshot.');
-  const flatten = (review: Review) => review.drifts.flatMap(d => d.entries.filter(e => e.verdict !== 'TEST').map(e => ({
-    identity: JSON.stringify([d.key, d.tag, e.targetId.startsWith(`${review.head}:`) ? e.targetId.slice(review.head.length + 1) : e.targetId]), key: d.key, tag: d.tag,
-    column: Number(e.targetId.split(':').at(-1)),
-    path: e.path, line: e.line, verdict: e.verdict,
-  })));
+  const flatten = (review: Review) => review.drifts.flatMap(d => d.entries.filter(e => e.verdict !== 'TEST').map(e => {
+    const evidence = repairEvidence(review.head, e);
+    return {
+      identity: JSON.stringify([d.key, d.tag, evidence.occurrence]), key: d.key, tag: d.tag,
+      column: evidence.column,
+      path: e.path, line: e.line, verdict: e.verdict,
+    };
+  }));
   const old = new Map(flatten(before).map(e => [e.identity, e]));
   const current = new Map(flatten(after).map(e => [e.identity, e]));
   const changes = [...new Set([...old.keys(), ...current.keys()])].sort().map(identity => {

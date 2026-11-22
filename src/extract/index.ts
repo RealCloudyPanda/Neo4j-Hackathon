@@ -5,7 +5,7 @@ import { extractImports } from "./imports.ts";
 import { readLinks } from "./links.ts";
 import { createProject } from "./project.ts";
 import type { SnapshotData } from "./types.ts";
-import { extractUsages } from "./usages.ts";
+import { extractUsages } from "./usageEvidence.ts";
 
 export const SNAPSHOT_TITLES: Record<string, string> = {
   base: "Base (main)",

@@ -1,3 +1,4 @@
+import { usageGraphRows } from "../extract/usageEvidence.ts";
 import type { SnapshotData } from "../extract/types.ts";
 import type { Params, Store } from "../relate/store.ts";
 
@@ -78,20 +79,7 @@ export function loadSnapshot(store: Store, s: SnapshotData): void {
       })),
     );
 
-    const usageRows = s.usages.map((u) => ({
-      id: `${snap}:${u.path}:${u.line}:${u.col}`,
-      snapshot: snap,
-      key: u.key,
-      path: u.path,
-      line: u.line,
-      col: u.col,
-      kind: u.kind,
-      flowNote: u.flowNote ?? null,
-      code: u.code,
-      inTest: testPaths.has(u.path),
-      fv: fvId(snap, u.key),
-      fileId: fileId(snap, u.path),
-    }));
+    const { usages: usageRows, flows } = usageGraphRows(snap, s.usages, testPaths);
     run(
       `UNWIND $rows AS r
        MATCH (v:FieldVersion {id: r.fv}), (file:File {id: r.fileId})
@@ -103,28 +91,6 @@ export function loadSnapshot(store: Store, s: SnapshotData): void {
       usageRows,
     );
 
-    const flows = s.usages.flatMap((u) => {
-      if (!u.passesTo) return [];
-      const { fn, param, argIndex } = u.passesTo;
-      const fnId = `${snap}:${fn.path}:${fn.name}`;
-      return [
-        {
-          usage: `${snap}:${u.path}:${u.line}:${u.col}`,
-          fnId,
-          fnName: fn.name,
-          fnPath: fn.path,
-          fnLine: fn.line,
-          fnFile: fileId(snap, fn.path),
-          paramId: `${fnId}:${param.name}`,
-          paramName: param.name,
-          paramIndex: param.index,
-          paramLine: param.line,
-          ...tagProps(param),
-          argIndex,
-          snapshot: snap,
-        },
-      ];
-    });
     run(
       `UNWIND $rows AS r
        MATCH (u:Usage {id: r.usage}), (file:File {id: r.fnFile})
